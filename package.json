@@ -1,0 +1,22 @@
+{
+  "name": "wtd-package-engine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Warehouse Tire Direct wheel+tire package engine (Express + Postgres)",
+  "type": "commonjs",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "node src/server.js",
+    "start": "node src/server.js",
+    "db:schema:print": "node src/scripts/print-schema.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.7",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "morgan": "^1.10.0",
+    "pg": "^8.13.0",
+    "zod": "^3.23.8",
+    "playwright": "^1.55.0"
+  }
+}

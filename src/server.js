@@ -13,7 +13,7 @@ const { TireSizeService } = require('./services/TireSizeService');
 
 const { WheelProsAdapter } = require('./adapters/wheelpros/WheelProsAdapter');
 const { WheelSizeFitmentAdapter } = require('./adapters/fitment/WheelSizeFitmentAdapter');
-const { MockTireAdapter } = require('./adapters/tires/MockTireAdapter');
+const { TireConnectScrapeAdapter } = require('./adapters/tires/TireConnectScrapeAdapter');
 
 async function main() {
   const config = loadConfig();
@@ -41,8 +41,16 @@ async function main() {
 
   const wheelService = new WheelService({ db, wheelAdapter, tireSizeService });
 
-  // Tire supplier (MVP: mock/stub, but persists into structured tables)
-  const tireAdapter = new MockTireAdapter();
+  // Tire supplier (MVP: TireConnect scrape; persists into structured tables)
+  const tireAdapter = (config.TIRECONNECT_WIDGET_ID && config.TIRECONNECT_LOCATION_ID)
+    ? new TireConnectScrapeAdapter({
+      widgetId: config.TIRECONNECT_WIDGET_ID,
+      locationId: config.TIRECONNECT_LOCATION_ID,
+      baseUrl: config.TIRECONNECT_BASE_URL,
+      headless: true
+    })
+    : null;
+
   const tireService = new TireService({ db, tireAdapter, tireSizeService });
 
   const packageEngineService = new PackageEngineService({

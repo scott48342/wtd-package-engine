@@ -25,8 +25,8 @@ class PackageEngineService {
 
     // Tire-size comparison settings
     const plusSize = {
-      warnPercent: 1.5, // warn if overall diameter differs by > 1.5%
-      maxPercent: 3.0   // hard fail threshold
+      warnPercent: 3.0, // warn if overall diameter differs by > 3.0%
+      maxPercent: 5.0   // hard fail threshold
     };
 
     const baseTireSize =
