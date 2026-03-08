@@ -1,12 +1,13 @@
 class PackageEngineService {
   /**
-   * @param {{vehicleService:any, fitmentService:any, wheelService:any, tireService:any}} deps
+   * @param {{vehicleService:any, fitmentService:any, wheelService:any, tireService:any, tireSizeService:any}} deps
    */
-  constructor({ vehicleService, fitmentService, wheelService, tireService }) {
+  constructor({ vehicleService, fitmentService, wheelService, tireService, tireSizeService }) {
     this.vehicleService = vehicleService;
     this.fitmentService = fitmentService;
     this.wheelService = wheelService;
     this.tireService = tireService;
+    this.tireSizeService = tireSizeService;
   }
 
   /**
@@ -78,7 +79,7 @@ class PackageEngineService {
 
       // Compare tire overall diameter to base size
       if (baseTireSize && t?.properties?.size) {
-        const cmp = this.tireService.tireSizeService.compareByDiameter(baseTireSize, t.properties.size);
+        const cmp = this.tireSizeService.compareByDiameter(baseTireSize, t.properties.size);
         if (cmp) {
           const pct = Math.abs(cmp.percentDifference);
           if (pct > plusSize.warnPercent) {

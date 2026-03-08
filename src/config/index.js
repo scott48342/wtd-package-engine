@@ -13,6 +13,11 @@ const envSchema = z.object({
   WHEELPROS_COMPANY: z.coerce.number().default(1500),
   WHEELPROS_CURRENCY: z.string().default('USD'),
 
+  // Wheel-Size (fitment)
+  WHEEL_SIZE_BASE_URL: z.string().optional(),
+  WHEEL_SIZE_API_KEY: z.string().optional(),
+
+  // Backward-compatible aliases
   WHEELSIZE_BASE_URL: z.string().optional(),
   WHEELSIZE_API_KEY: z.string().optional(),
 
@@ -29,7 +34,10 @@ function loadConfig(processEnv = process.env) {
     err.details = parsed.error.flatten();
     throw err;
   }
-  return parsed.data;
+  const cfg = { ...parsed.data };
+  if (!cfg.WHEEL_SIZE_BASE_URL && cfg.WHEELSIZE_BASE_URL) cfg.WHEEL_SIZE_BASE_URL = cfg.WHEELSIZE_BASE_URL;
+  if (!cfg.WHEEL_SIZE_API_KEY && cfg.WHEELSIZE_API_KEY) cfg.WHEEL_SIZE_API_KEY = cfg.WHEELSIZE_API_KEY;
+  return cfg;
 }
 
 module.exports = { loadConfig };

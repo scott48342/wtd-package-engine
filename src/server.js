@@ -21,10 +21,10 @@ async function main() {
 
   const vehicleService = new VehicleService({ db });
 
-  // Fitment provider (MVP: Wheel-Size API scaffold)
+  // Fitment provider (MVP: Wheel-Size API)
   const fitmentProvider = new WheelSizeFitmentAdapter({
-    baseUrl: config.WHEELSIZE_BASE_URL,
-    apiKey: config.WHEELSIZE_API_KEY
+    baseUrl: config.WHEEL_SIZE_BASE_URL,
+    apiKey: config.WHEEL_SIZE_API_KEY
   });
   const fitmentService = new FitmentService({ db, provider: fitmentProvider });
 
@@ -57,7 +57,8 @@ async function main() {
     vehicleService,
     fitmentService,
     wheelService,
-    tireService
+    tireService,
+    tireSizeService
   });
 
   const app = createApp({
