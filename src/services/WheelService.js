@@ -45,39 +45,44 @@ class WheelService {
 
     if (boltPattern) {
       values.push(boltPattern);
-      where.push(`ws.bolt_pattern = $${i++}`);
+      // normalize comparison
+      where.push(`lower(ws.bolt_pattern) = lower($${i++})`);
     }
 
     if (centerBoreMm != null) {
       values.push(centerBoreMm);
-      where.push(`(ws.center_bore_mm is null or ws.center_bore_mm >= $${i++}::numeric(6,2))`);
+      // require present and >= vehicle
+      where.push(`ws.center_bore_mm >= $${i++}::numeric(6,2)`);
     }
 
+    // diameter: require present and within range
     if (diaMin != null) {
       values.push(diaMin);
-      where.push(`(ws.diameter_in is null or ws.diameter_in >= $${i++}::numeric(5,2))`);
+      where.push(`ws.diameter_in >= $${i++}::numeric(5,2)`);
     }
     if (diaMax != null) {
       values.push(diaMax);
-      where.push(`(ws.diameter_in is null or ws.diameter_in <= $${i++}::numeric(5,2))`);
+      where.push(`ws.diameter_in <= $${i++}::numeric(5,2)`);
     }
 
+    // width: allow ± tolerance
     if (widthMin != null) {
       values.push(widthMin - widthTol);
-      where.push(`(ws.width_in is null or ws.width_in >= $${i++}::numeric(5,2))`);
+      where.push(`ws.width_in >= $${i++}::numeric(5,2)`);
     }
     if (widthMax != null) {
       values.push(widthMax + widthTol);
-      where.push(`(ws.width_in is null or ws.width_in <= $${i++}::numeric(5,2))`);
+      where.push(`ws.width_in <= $${i++}::numeric(5,2)`);
     }
 
+    // offset: allow ± tolerance
     if (offMin != null) {
       values.push(offMin - offsetTol);
-      where.push(`(ws.offset_mm is null or ws.offset_mm >= $${i++}::numeric(6,2))`);
+      where.push(`ws.offset_mm >= $${i++}::numeric(6,2)`);
     }
     if (offMax != null) {
       values.push(offMax + offsetTol);
-      where.push(`(ws.offset_mm is null or ws.offset_mm <= $${i++}::numeric(6,2))`);
+      where.push(`ws.offset_mm <= $${i++}::numeric(6,2)`);
     }
 
     const whereSql = where.length ? `where ${where.join(' and ')}` : '';
