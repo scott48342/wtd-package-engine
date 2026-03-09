@@ -7,10 +7,16 @@ class TireSizeService {
    */
   parseSize(sizeStr) {
     if (!sizeStr) return null;
-    const s = String(sizeStr).trim().toUpperCase().replace(/\s+/g, '');
+    // Normalize common suffixes like "96Y" and constructions like "ZR".
+    const s = String(sizeStr)
+      .trim()
+      .toUpperCase()
+      .replace(/\s+/g, '')
+      // drop trailing load/speed rating (e.g. 245/40ZR18 96Y)
+      .replace(/(\d{3}\/\d{2,3}(?:Z)?R\d{2}(?:\.\d)?).*/, '$1');
 
-    // 225/60R18
-    const m = s.match(/^(\d{3})\/(\d{2,3})R(\d{2}(?:\.\d)?)$/);
+    // 225/60R18 or 245/40ZR18 (we ignore Z)
+    const m = s.match(/^(\d{3})\/(\d{2,3})(?:Z)?R(\d{2}(?:\.\d)?)$/);
     if (!m) return null;
 
     const widthMm = parseInt(m[1], 10);
