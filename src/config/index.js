@@ -11,6 +11,8 @@ const envSchema = z.object({
   WHEELPROS_USERNAME: z.string().optional(),
   WHEELPROS_PASSWORD: z.string().optional(),
   WHEELPROS_COMPANY: z.coerce.number().default(1500),
+  // For WheelPros service accounts, you may need to pass a customer number for pricing.
+  WHEELPROS_CUSTOMER: z.string().optional(),
   WHEELPROS_CURRENCY: z.string().default('USD'),
 
   // Wheel-Size (fitment)
@@ -20,6 +22,9 @@ const envSchema = z.object({
   // Backward-compatible aliases
   WHEELSIZE_BASE_URL: z.string().optional(),
   WHEELSIZE_API_KEY: z.string().optional(),
+
+  // Fitment caching
+  FITMENT_CACHE_TTL_DAYS: z.coerce.number().default(7),
 
   // TireConnect scrape adapter (interim)
   TIRECONNECT_WIDGET_ID: z.string().optional(),

@@ -26,7 +26,11 @@ async function main() {
     baseUrl: config.WHEEL_SIZE_BASE_URL,
     apiKey: config.WHEEL_SIZE_API_KEY
   });
-  const fitmentService = new FitmentService({ db, provider: fitmentProvider });
+  const fitmentService = new FitmentService({
+    db,
+    provider: fitmentProvider,
+    cacheTtlDays: config.FITMENT_CACHE_TTL_DAYS
+  });
 
   // Wheel supplier (MVP: Wheel Pros)
   const wheelAdapter = new WheelProsAdapter({
@@ -35,6 +39,7 @@ async function main() {
     userName: config.WHEELPROS_USERNAME,
     password: config.WHEELPROS_PASSWORD,
     company: config.WHEELPROS_COMPANY,
+    customer: config.WHEELPROS_CUSTOMER,
     currencyCode: config.WHEELPROS_CURRENCY
   });
   const tireSizeService = new TireSizeService();

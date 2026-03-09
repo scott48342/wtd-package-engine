@@ -5,9 +5,10 @@ const { WheelProsAuthClient, WheelProsProductsClient } = require('./wheelprosCli
  * Normalizes Wheel Pros Product API responses.
  */
 class WheelProsAdapter {
-  constructor({ authBaseUrl, productsBaseUrl, userName, password, company, currencyCode }) {
+  constructor({ authBaseUrl, productsBaseUrl, userName, password, company, customer, currencyCode }) {
     this.code = 'WHEELPROS';
     this.company = company;
+    this.customer = customer;
     this.currencyCode = currencyCode;
 
     this.auth = new WheelProsAuthClient({ authBaseUrl, userName, password });
@@ -21,16 +22,39 @@ class WheelProsAdapter {
   /**
    * @param {object} query
    */
-  async searchWheels(query) {
-    const params = { ...query };
+  async searchWheels(query = {}) {
+    const params = {
+      page: Number(query.page || 1),
+      pageSize: Number(query.pageSize || 20),
+      // By default request inventory + price.
+      fields: query.fields || 'inventory,price',
+      priceType: query.priceType || 'msrp',
+      company: query.company || this.company,
+      customer: query.customer || this.customer,
+      currencyCode: query.currencyCode || this.currencyCode,
+      availabilityType: query.availabilityType || 'AVAILABLE',
+      realTimeInventory:
+        query.realTimeInventory !== undefined ? query.realTimeInventory : false,
+      ...query
+    };
 
-    // If priceType present, ensure company present
-    if (params.priceType && !params.company) params.company = this.company;
-    if (params.currencyCode == null) params.currencyCode = this.currencyCode;
+    // WheelPros API is picky about some numeric filters (e.g. diameter must be "20.0", not 20).
+    if (params.diameter != null) {
+      const n = Number(params.diameter);
+      if (Number.isFinite(n)) params.diameter = n % 1 === 0 ? n.toFixed(1) : String(n);
+    }
+    if (params.width != null) {
+      const n = Number(params.width);
+      // Spec says string; send normalized numeric string.
+      if (Number.isFinite(n)) params.width = n % 1 === 0 ? n.toFixed(1) : String(n);
+    }
+
+    // Avoid sending empty customer param.
+    if (!params.customer) delete params.customer;
 
     const res = await this.products.request({
       method: 'GET',
-      url: '/v1/search/wheel',
+      url: 'v1/search/wheel',
       params
     });
 
@@ -40,8 +64,9 @@ class WheelProsAdapter {
   async getWheelDetails(externalSku) {
     const res = await this.products.request({
       method: 'GET',
-      url: `/v1/details/${encodeURIComponent(externalSku)}`
+      url: `v1/details/${encodeURIComponent(externalSku)}`
     });
+
     return res.data;
   }
 
@@ -54,10 +79,13 @@ class WheelProsAdapter {
     const inv = rec?.inventory || {};
 
     const tpms = p.tpmsCompatible;
-    const tpmsBool = tpms == null ? null : (Number(tpms) === 1);
+    const tpmsBool = tpms == null ? null : Number(tpms) === 1;
 
     const load = p.loadRating;
-    const loadLbs = typeof load === 'string' ? parseMaybeNumber(load.split('/')[0]) : parseMaybeNumber(load);
+    const loadLbs =
+      typeof load === 'string'
+        ? parseMaybeNumber(load.split('/')[0])
+        : parseMaybeNumber(load);
 
     return {
       diameterIn: parseMaybeNumber(p.diameter),
@@ -92,17 +120,38 @@ class WheelProsAdapter {
   toPrices(rec) {
     const prices = rec?.prices || {};
     const out = [];
+
     for (const [priceType, arr] of Object.entries(prices)) {
       if (!Array.isArray(arr)) continue;
+
       for (const p of arr) {
-        const amount = parseMaybeNumber(p.currencyAmount);
+        // WheelPros uses currencyAmount; it can be null when pricing isn't available.
+        const amount = parseMaybeNumber(p.currencyAmount ?? p.amount ?? p.value);
         const currency = p.currencyCode || this.currencyCode;
         if (amount != null) out.push({ priceType, amount, currency });
       }
     }
+
     return out;
   }
+
+  /**
+   * Pick the best available MSRP-like price from a record.
+   * Prefers msrp, then map, then nip.
+   */
+  extractMsrp(rec) {
+    const prices = rec?.prices || {};
+    for (const key of ['msrp', 'map', 'nip']) {
+      const arr = prices[key];
+      if (!Array.isArray(arr) || !arr[0]) continue;
+      const amount = parseMaybeNumber(arr[0].currencyAmount ?? arr[0].amount ?? arr[0].value);
+      const currency = arr[0].currencyCode || this.currencyCode;
+      if (amount != null) return { amount, currency, priceType: key };
+    }
+    return null;
+  }
 }
+
 
 function parseMaybeNumber(v) {
   if (v == null) return null;

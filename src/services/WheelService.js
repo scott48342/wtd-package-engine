@@ -18,33 +18,75 @@ class WheelService {
     const supplierCode = this.wheelAdapter.getCapabilities().code;
     const supplierId = await this._getOrCreateSupplierId(supplierCode, 'wheel');
 
-    const normalized = [];
+    const includeRaw = query?.includeRaw === true || query?.includeRaw === 'true';
+    const debugPrice = query?.debugPrice === true || query?.debugPrice === 'true';
+
+    const cards = [];
+    const enriched = [];
+
     for (const r of results) {
       const identity = await this._resolveIdentity({ supplierId, supplierCode, externalSku: r.sku, skuType: 'wheel' });
 
       // Persist structured specs + snapshots
-      await this._upsertWheelStructured({ supplierId, identity, wheelRecord: r });
+      await this._upsertWheelStructured({ supplierId, identity, wheelRecord: r, debugPrice });
 
-      normalized.push({
-        identity,
-        title: r.title,
-        brand: r.brand,
-        properties: r.properties,
-        inventory: r.inventory,
-        prices: r.prices,
-        images: r.images
-      });
+      const spec = this.wheelAdapter.toWheelSpec(r);
+      const inv = this.wheelAdapter.toInventory(r);
+      const msrp = this.wheelAdapter.extractMsrp ? this.wheelAdapter.extractMsrp(r) : null;
+
+      const primaryImage = Array.isArray(r.images) && r.images.length
+        ? (r.images.find((i) => String(i.aspect || '').toLowerCase() === 'standard') || r.images[0])
+        : null;
+
+      const card = {
+        sku: identity.externalSku,
+        internalProductId: identity.internalProductId,
+        title: r.title || null,
+        brand: r.brand?.description || r.brand?.parent || r.brand || null,
+        diameter: spec.diameterIn,
+        width: spec.widthIn,
+        offset: spec.offsetMm,
+        boltPattern: spec.boltPattern,
+        finish: spec.finish,
+        centerBore: spec.centerBoreMm,
+        stock: {
+          local: inv.localStock,
+          global: inv.globalStock,
+          type: inv.inventoryType
+        },
+        primaryImage: primaryImage?.imageUrlLarge || primaryImage?.imageUrlMedium || primaryImage?.imageUrlSmall || primaryImage?.imageUrlOriginal || null,
+        msrp: msrp ? { amount: msrp.amount, currency: msrp.currency, priceType: msrp.priceType } : null
+      };
+
+      cards.push(card);
+
+      if (includeRaw) {
+        enriched.push({
+          identity,
+          wheel: card,
+          raw: {
+            title: r.title,
+            brand: r.brand,
+            properties: r.properties,
+            inventory: r.inventory,
+            prices: r.prices,
+            images: r.images
+          }
+        });
+      }
     }
 
     return {
-      results: normalized,
+      results: cards,
+      // optional raw payload per-item for debugging/back-compat
+      ...(includeRaw ? { items: enriched } : {}),
       totalCount: raw.totalCount,
       page: raw.page,
       pageSize: raw.pageSize
     };
   }
 
-  async _upsertWheelStructured({ supplierId, identity, wheelRecord }) {
+  async _upsertWheelStructured({ supplierId, identity, wheelRecord, debugPrice = false }) {
     // Update product core
     await this.db.query({
       text: `
@@ -112,14 +154,24 @@ class WheelService {
     });
 
     const inv = this.wheelAdapter.toInventory(wheelRecord);
+    // Prevent DB bloat: avoid inserting identical inventory snapshots too frequently.
     await this.db.query({
       text: `
         insert into product_inventory (
           id, product_id, local_stock, global_stock, inventory_type,
           supplier_id, source_timestamp, confidence, as_of
-        ) values (
-          $1::uuid, $2::uuid, $3, $4, $5,
-          $6::uuid, now(), $7, now()
+        )
+        select $1::uuid, $2::uuid, $3, $4, $5,
+               $6::uuid, now(), $7, now()
+        where not exists (
+          select 1
+          from product_inventory pi
+          where pi.product_id = $2::uuid
+            and pi.supplier_id = $6::uuid
+            and pi.local_stock is not distinct from $3
+            and pi.global_stock is not distinct from $4
+            and pi.inventory_type is not distinct from $5
+            and pi.as_of > now() - interval '1 hour'
         )
       `,
       values: [
@@ -134,14 +186,35 @@ class WheelService {
     });
 
     const prices = this.wheelAdapter.toPrices(wheelRecord);
+
+    if (debugPrice) {
+      const msrp = this.wheelAdapter.extractMsrp ? this.wheelAdapter.extractMsrp(wheelRecord) : null;
+      console.log('[wheelpros][price]', {
+        sku: identity.externalSku,
+        hasPrices: !!wheelRecord?.prices,
+        priceKeys: wheelRecord?.prices ? Object.keys(wheelRecord.prices) : null,
+        extractedMsrp: msrp,
+        rawMsrp: wheelRecord?.prices?.msrp?.[0] || null
+      });
+    }
+
+    // Prevent DB bloat: only insert when we have a real amount and we haven't inserted the same
+    // (product, type, currency, amount) recently.
     for (const p of prices) {
       await this.db.query({
         text: `
-          insert into product_price (
-            id, product_id, price_type, currency, amount, as_of
-          ) values (
-            $1::uuid, $2::uuid, $3, $4, $5, now()
-          )
+          insert into product_price (id, product_id, price_type, currency, amount, as_of)
+          select $1::uuid, $2::uuid, $3, $4, $5, now()
+          where $5 is not null
+            and not exists (
+              select 1
+              from product_price pp
+              where pp.product_id = $2::uuid
+                and pp.price_type = $3
+                and pp.currency = $4
+                and pp.amount = $5
+                and pp.as_of > now() - interval '6 hours'
+            )
         `,
         values: [randomUUID(), identity.internalProductId, p.priceType, p.currency, p.amount]
       });
