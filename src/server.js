@@ -11,6 +11,7 @@ const { WheelSizeCatalogService } = require('./services/WheelSizeCatalogService'
 const { TireService } = require('./services/TireService');
 const { PackageEngineService } = require('./services/PackageEngineService');
 const { TireSizeService } = require('./services/TireSizeService');
+const { InstallerService } = require('./services/InstallerService');
 
 const { WheelProsAdapter } = require('./adapters/wheelpros/WheelProsAdapter');
 const { WheelSizeFitmentAdapter } = require('./adapters/fitment/WheelSizeFitmentAdapter');
@@ -75,9 +76,14 @@ async function main() {
     tireSizeService
   });
 
+  const installerService = new InstallerService({
+    db,
+    cacheTtlDays: config.FITMENT_CACHE_TTL_DAYS
+  });
+
   const app = createApp({
     config,
-    services: { vehicleService, fitmentService, wheelService, wheelSizeCatalogService, tireService, packageEngineService }
+    services: { vehicleService, fitmentService, wheelService, wheelSizeCatalogService, tireService, packageEngineService, installerService }
   });
 
   app.listen(config.PORT, () => {
