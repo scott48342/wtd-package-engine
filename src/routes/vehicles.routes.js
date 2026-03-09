@@ -40,7 +40,15 @@ function vehiclesRouter({ vehicleService, fitmentService, wheelService, wheelSiz
     try {
       if (!wheelSizeCatalogService) return res.status(500).json({ error: 'wheel_size_not_configured' });
       const payload = await wheelSizeCatalogService.listYears();
-      const years = Array.isArray(payload?.data) ? payload.data.map((y) => Number(y)).filter((n) => Number.isFinite(n)).sort((a, b) => a - b) : [];
+      const years = Array.isArray(payload?.data)
+        ? payload.data
+          .map((y) => {
+            if (typeof y === 'number' || typeof y === 'string') return Number(y);
+            return Number(y?.slug ?? y?.name);
+          })
+          .filter((n) => Number.isFinite(n))
+          .sort((a, b) => a - b)
+        : [];
       res.json({ results: years });
     } catch (e) {
       next(e);
