@@ -1,11 +1,11 @@
-const { WheelProsAuthClient, WheelProsProductsClient } = require('./wheelprosClient');
+const { WheelProsAuthClient, WheelProsProductsClient, WheelProsPricingClient } = require('./wheelprosClient');
 
 /**
  * WheelProsAdapter implements WheelSupplierAdapter.
  * Normalizes Wheel Pros Product API responses.
  */
 class WheelProsAdapter {
-  constructor({ authBaseUrl, productsBaseUrl, userName, password, company, customer, currencyCode }) {
+  constructor({ authBaseUrl, productsBaseUrl, pricingBaseUrl, userName, password, company, customer, currencyCode }) {
     this.code = 'WHEELPROS';
     this.company = company;
     this.customer = customer;
@@ -13,6 +13,12 @@ class WheelProsAdapter {
 
     this.auth = new WheelProsAuthClient({ authBaseUrl, userName, password });
     this.products = new WheelProsProductsClient({ productsBaseUrl, authClient: this.auth });
+
+    // Pricing API is separate from Products API.
+    this.pricing = new WheelProsPricingClient({
+      pricingBaseUrl: pricingBaseUrl || 'https://dev.api.wheelpros.com/pricings',
+      authClient: this.auth
+    });
   }
 
   getCapabilities() {
@@ -68,6 +74,48 @@ class WheelProsAdapter {
     });
 
     return res.data;
+  }
+
+  /**
+   * Fetch MSRP pricing from the WheelPros Pricing API for a set of SKUs.
+   * @param {string[]} skus
+   * @param {{company?: string|number, currency?: string, customer?: string, effectiveDate?: string}} opts
+   * @returns {Promise<Map<string, {amount:number, currency:string, priceType:string}>>}
+   */
+  async getMsrpBySku(skus = [], opts = {}) {
+    const unique = Array.from(new Set((skus || []).filter(Boolean)));
+    if (!unique.length) return new Map();
+
+    const body = {
+      filters: {
+        sku: unique,
+        company: String(opts.company ?? this.company),
+        currency: String(opts.currency ?? this.currencyCode),
+        ...(opts.customer || this.customer ? { customer: String(opts.customer ?? this.customer) } : {}),
+        ...(opts.effectiveDate ? { effectiveDate: String(opts.effectiveDate) } : {})
+      },
+      limit: unique.length,
+      priceType: ['msrp']
+    };
+
+    const res = await this.pricing.request({
+      method: 'POST',
+      url: 'v1/search',
+      data: body
+    });
+
+    const out = new Map();
+    const rows = Array.isArray(res.data) ? res.data : [];
+    for (const row of rows) {
+      const sku = row?.sku;
+      const msrpArr = row?.prices?.msrp;
+      const p0 = Array.isArray(msrpArr) ? msrpArr[0] : null;
+      const amount = parseMaybeNumber(p0?.currencyAmount);
+      const currency = p0?.currencyCode || this.currencyCode;
+      if (sku && amount != null) out.set(sku, { amount, currency, priceType: 'msrp' });
+    }
+
+    return out;
   }
 
   /**

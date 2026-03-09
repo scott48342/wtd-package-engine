@@ -24,6 +24,20 @@ class WheelService {
     const cards = [];
     const enriched = [];
 
+    // Always attempt to populate MSRP from WheelPros Pricing API.
+    let msrpBySku = new Map();
+    try {
+      const skus = results.map((r) => r?.sku).filter(Boolean);
+      msrpBySku = await this.wheelAdapter.getMsrpBySku(skus, {
+        company: query?.company,
+        customer: query?.customer,
+        currency: query?.currencyCode
+      });
+    } catch (e) {
+      // Pricing should never break search.
+      console.warn('[wheelpros][pricing] enrichment failed:', e?.response?.status, e?.response?.data || e?.message);
+    }
+
     for (const r of results) {
       const identity = await this._resolveIdentity({ supplierId, supplierCode, externalSku: r.sku, skuType: 'wheel' });
 
@@ -32,7 +46,8 @@ class WheelService {
 
       const spec = this.wheelAdapter.toWheelSpec(r);
       const inv = this.wheelAdapter.toInventory(r);
-      const msrp = this.wheelAdapter.extractMsrp ? this.wheelAdapter.extractMsrp(r) : null;
+      const msrp = msrpBySku.get(identity.externalSku)
+        || (this.wheelAdapter.extractMsrp ? this.wheelAdapter.extractMsrp(r) : null);
 
       const primaryImage = Array.isArray(r.images) && r.images.length
         ? (r.images.find((i) => String(i.aspect || '').toLowerCase() === 'standard') || r.images[0])

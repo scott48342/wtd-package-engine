@@ -13,6 +13,8 @@ const envSchema = z.object({
   WHEELPROS_COMPANY: z.coerce.number().default(1500),
   // For WheelPros service accounts, you may need to pass a customer number for pricing.
   WHEELPROS_CUSTOMER: z.string().optional(),
+  // Pricing API lives on a different host (per WheelPros docs).
+  WHEELPROS_PRICING_BASE_URL: z.string().optional(),
   WHEELPROS_CURRENCY: z.string().default('USD'),
 
   // Wheel-Size (fitment)

@@ -36,6 +36,7 @@ async function main() {
   const wheelAdapter = new WheelProsAdapter({
     authBaseUrl: config.WHEELPROS_AUTH_BASE_URL,
     productsBaseUrl: config.WHEELPROS_PRODUCTS_BASE_URL,
+    pricingBaseUrl: config.WHEELPROS_PRICING_BASE_URL,
     userName: config.WHEELPROS_USERNAME,
     password: config.WHEELPROS_PASSWORD,
     company: config.WHEELPROS_COMPANY,
