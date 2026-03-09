@@ -22,7 +22,8 @@ function createApp({ config, services }) {
 
   app.use('/v1/vehicles', vehiclesRouter({
     vehicleService: services.vehicleService,
-    fitmentService: services.fitmentService
+    fitmentService: services.fitmentService,
+    wheelService: services.wheelService
   }));
 
   app.use('/v1/wheels', wheelsRouter({

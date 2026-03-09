@@ -1,6 +1,174 @@
 const { randomUUID } = require('crypto');
 
 class WheelService {
+  async listCompatibleWheels({ vehicleId, page = 1, pageSize = 20 }) {
+    // 1) Load vehicle fitment
+    const { rows } = await this.db.query({
+      text: `
+        select bolt_pattern, center_bore_mm,
+               min_wheel_dia_in, max_wheel_dia_in,
+               min_wheel_w_in, max_wheel_w_in,
+               min_offset_mm, max_offset_mm
+        from vehicle_fitment
+        where vehicle_id = $1::uuid
+        limit 1
+      `,
+      values: [vehicleId]
+    });
+
+    const f = rows[0];
+    if (!f) {
+      return { results: [], totalCount: 0, page, pageSize, error: 'vehicle_fitment_not_found' };
+    }
+
+    const boltPattern = (f.bolt_pattern || '').trim();
+    const centerBoreMm = f.center_bore_mm != null ? Number(f.center_bore_mm) : null;
+
+    const diaMin = f.min_wheel_dia_in != null ? Number(f.min_wheel_dia_in) : null;
+    const diaMax = f.max_wheel_dia_in != null ? Number(f.max_wheel_dia_in) : null;
+    const widthMin = f.min_wheel_w_in != null ? Number(f.min_wheel_w_in) : null;
+    const widthMax = f.max_wheel_w_in != null ? Number(f.max_wheel_w_in) : null;
+    const offMin = f.min_offset_mm != null ? Number(f.min_offset_mm) : null;
+    const offMax = f.max_offset_mm != null ? Number(f.max_offset_mm) : null;
+
+    // Compatibility tolerances
+    const widthTol = 1; // ±1 inch
+    const offsetTol = 10; // ±10 mm
+
+    // 2) Query compatible wheels from catalog (DB)
+    // NOTE: Current WheelPros ingestion often has empty boltPattern; this will limit matches.
+    const where = [];
+    const values = [];
+    let i = 1;
+
+    where.push(`p.sku_type = 'wheel'`);
+
+    if (boltPattern) {
+      values.push(boltPattern);
+      where.push(`ws.bolt_pattern = $${i++}`);
+    }
+
+    if (centerBoreMm != null) {
+      values.push(centerBoreMm);
+      where.push(`(ws.center_bore_mm is null or ws.center_bore_mm >= $${i++}::numeric(6,2))`);
+    }
+
+    if (diaMin != null) {
+      values.push(diaMin);
+      where.push(`(ws.diameter_in is null or ws.diameter_in >= $${i++}::numeric(5,2))`);
+    }
+    if (diaMax != null) {
+      values.push(diaMax);
+      where.push(`(ws.diameter_in is null or ws.diameter_in <= $${i++}::numeric(5,2))`);
+    }
+
+    if (widthMin != null) {
+      values.push(widthMin - widthTol);
+      where.push(`(ws.width_in is null or ws.width_in >= $${i++}::numeric(5,2))`);
+    }
+    if (widthMax != null) {
+      values.push(widthMax + widthTol);
+      where.push(`(ws.width_in is null or ws.width_in <= $${i++}::numeric(5,2))`);
+    }
+
+    if (offMin != null) {
+      values.push(offMin - offsetTol);
+      where.push(`(ws.offset_mm is null or ws.offset_mm >= $${i++}::numeric(6,2))`);
+    }
+    if (offMax != null) {
+      values.push(offMax + offsetTol);
+      where.push(`(ws.offset_mm is null or ws.offset_mm <= $${i++}::numeric(6,2))`);
+    }
+
+    const whereSql = where.length ? `where ${where.join(' and ')}` : '';
+
+    const countQ = {
+      text: `
+        select count(*)::int as c
+        from product p
+        join wheel_spec ws on ws.product_id = p.id
+        ${whereSql}
+      `,
+      values
+    };
+
+    const { rows: countRows } = await this.db.query(countQ);
+    const totalCount = countRows[0]?.c || 0;
+
+    const limit = Math.max(1, Math.min(100, Number(pageSize) || 20));
+    const offset = (Math.max(1, Number(page) || 1) - 1) * limit;
+
+    const q = {
+      text: `
+        select
+          p.id as internal_product_id,
+          p.preferred_external_sku as sku,
+          p.title,
+          p.brand,
+          ws.diameter_in,
+          ws.width_in,
+          ws.offset_mm,
+          ws.finish,
+          ws.bolt_pattern,
+          ws.center_bore_mm,
+          (
+            select pi.global_stock
+            from product_inventory pi
+            where pi.product_id = p.id
+            order by pi.as_of desc
+            limit 1
+          ) as global_stock,
+          (
+            select pi.local_stock
+            from product_inventory pi
+            where pi.product_id = p.id
+            order by pi.as_of desc
+            limit 1
+          ) as local_stock,
+          (
+            select pp.amount
+            from product_price pp
+            where pp.product_id = p.id and pp.price_type = 'msrp'
+            order by pp.as_of desc
+            limit 1
+          ) as msrp_amount,
+          (
+            select pp.currency
+            from product_price pp
+            where pp.product_id = p.id and pp.price_type = 'msrp'
+            order by pp.as_of desc
+            limit 1
+          ) as msrp_currency
+        from product p
+        join wheel_spec ws on ws.product_id = p.id
+        ${whereSql}
+        order by p.updated_at desc
+        limit ${limit} offset ${offset}
+      `,
+      values
+    };
+
+    const { rows: wheelRows } = await this.db.query(q);
+
+    const results = wheelRows.map((r) => ({
+      sku: r.sku,
+      title: r.title || null,
+      brand: r.brand || null,
+      diameter: r.diameter_in != null ? Number(r.diameter_in) : null,
+      width: r.width_in != null ? Number(r.width_in) : null,
+      offset: r.offset_mm != null ? Number(r.offset_mm) : null,
+      finish: r.finish || null,
+      primaryImage: null, // not stored in DB yet
+      stock: {
+        local: r.local_stock != null ? Number(r.local_stock) : null,
+        global: r.global_stock != null ? Number(r.global_stock) : null
+      },
+      msrp: r.msrp_amount != null ? { amount: Number(r.msrp_amount), currency: r.msrp_currency || 'USD', priceType: 'msrp' } : null
+    }));
+
+    return { results, totalCount, page, pageSize, fitment: { boltPattern, centerBoreMm, wheelDiameterRangeIn: [diaMin, diaMax], wheelWidthRangeIn: [widthMin, widthMax], offsetRangeMm: [offMin, offMax] } };
+  }
+
   /**
    * @param {{db: import('pg').Pool, wheelAdapter: any}} deps
    */

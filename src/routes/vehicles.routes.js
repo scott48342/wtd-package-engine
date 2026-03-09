@@ -1,6 +1,6 @@
 const express = require('express');
 
-function vehiclesRouter({ vehicleService, fitmentService }) {
+function vehiclesRouter({ vehicleService, fitmentService, wheelService }) {
   const r = express.Router();
 
   // Vehicle lookup (Y/M/M) via Wheel-Size, with DB persistence + cache.
@@ -52,6 +52,21 @@ function vehiclesRouter({ vehicleService, fitmentService }) {
       const make = req.query.make ? String(req.query.make) : undefined;
       const models = await vehicleService.listModels({ year, make });
       res.json({ results: models });
+    } catch (e) {
+      next(e);
+    }
+  });
+
+  r.get('/:vehicleId/wheels', async (req, res, next) => {
+    try {
+      if (!wheelService) return res.status(500).json({ error: 'wheel_service_not_configured' });
+      const vehicleId = req.params.vehicleId;
+
+      const page = req.query.page ? Number(req.query.page) : 1;
+      const pageSize = req.query.pageSize ? Number(req.query.pageSize) : 20;
+
+      const data = await wheelService.listCompatibleWheels({ vehicleId, page, pageSize });
+      res.json(data);
     } catch (e) {
       next(e);
     }
