@@ -24,18 +24,23 @@ class WheelService {
     const cards = [];
     const enriched = [];
 
-    // Always attempt to populate MSRP from WheelPros Pricing API.
+    // Optional: populate MSRP from WheelPros Pricing API.
+    // Disabled by default because pricing access may not be provisioned for the account.
+    const enrichPricing = query?.enrichPricing === true || query?.enrichPricing === 'true';
+
     let msrpBySku = new Map();
-    try {
-      const skus = results.map((r) => r?.sku).filter(Boolean);
-      msrpBySku = await this.wheelAdapter.getMsrpBySku(skus, {
-        company: query?.company,
-        customer: query?.customer,
-        currency: query?.currencyCode
-      });
-    } catch (e) {
-      // Pricing should never break search.
-      console.warn('[wheelpros][pricing] enrichment failed:', e?.response?.status, e?.response?.data || e?.message);
+    if (enrichPricing && this.wheelAdapter.getMsrpBySku) {
+      try {
+        const skus = results.map((r) => r?.sku).filter(Boolean);
+        msrpBySku = await this.wheelAdapter.getMsrpBySku(skus, {
+          company: query?.company,
+          customer: query?.customer,
+          currency: query?.currencyCode
+        });
+      } catch (e) {
+        // Pricing should never break search.
+        console.warn('[wheelpros][pricing] enrichment failed:', e?.response?.status, e?.response?.data || e?.message);
+      }
     }
 
     for (const r of results) {
@@ -219,15 +224,15 @@ class WheelService {
       await this.db.query({
         text: `
           insert into product_price (id, product_id, price_type, currency, amount, as_of)
-          select $1::uuid, $2::uuid, $3, $4, $5, now()
-          where $5 is not null
+          select $1::uuid, $2::uuid, $3, $4, $5::numeric(12,2), now()
+          where $5::numeric(12,2) is not null
             and not exists (
               select 1
               from product_price pp
               where pp.product_id = $2::uuid
                 and pp.price_type = $3
                 and pp.currency = $4
-                and pp.amount = $5
+                and pp.amount = $5::numeric(12,2)
                 and pp.as_of > now() - interval '6 hours'
             )
         `,
