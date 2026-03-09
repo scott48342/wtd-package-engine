@@ -189,6 +189,45 @@ class WheelService {
     this.tireSizeService = tireSizeService;
   }
 
+  async searchTires(query) {
+    const raw = await this.wheelAdapter.searchTires(query);
+    const results = raw.results || raw.searchResults || [];
+
+    const out = [];
+    for (const r of results) {
+      const p = r?.properties || {};
+      const inv = r?.inventory || {};
+      const prices = r?.prices || {};
+
+      const msrp = Array.isArray(prices?.msrp) ? prices.msrp[0] : null;
+      const msrpAmount = msrp?.currencyAmount != null ? Number(msrp.currencyAmount) : null;
+
+      out.push({
+        sku: r.sku,
+        title: r.title || null,
+        brand: r.brand?.description || r.brand?.parent || r.brand || null,
+        size: p.size || p.tire || p.tire_full || null,
+        wheelDiameter: p.wheelDiameter != null ? Number(p.wheelDiameter) : null,
+        width: p.width != null ? Number(p.width) : null,
+        aspectRatio: p.aspectRatio != null ? Number(p.aspectRatio) : null,
+        stock: {
+          local: inv.localStock ?? null,
+          global: inv.globalStock ?? null,
+          type: inv.type ?? null
+        },
+        msrp: msrpAmount != null ? { amount: msrpAmount, currency: msrp?.currencyCode || 'USD', priceType: 'msrp' } : null,
+        raw: r
+      });
+    }
+
+    return {
+      results: out,
+      totalCount: raw.totalCount,
+      page: raw.page,
+      pageSize: raw.pageSize
+    };
+  }
+
   async searchWheels(query) {
     const raw = await this.wheelAdapter.searchWheels(query);
 

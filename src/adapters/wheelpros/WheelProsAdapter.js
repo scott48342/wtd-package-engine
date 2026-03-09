@@ -29,20 +29,26 @@ class WheelProsAdapter {
    * @param {object} query
    */
   async searchWheels(query = {}) {
+    // IMPORTANT: WheelPros search behavior changes based on pricing-related query params.
+    // In practice, sending fields/priceType/company/currencyCode has resulted in null prices.
+    // So we keep the default query minimal and only pass pricing params when explicitly requested.
     const params = {
       page: Number(query.page || 1),
       pageSize: Number(query.pageSize || 20),
-      // By default request inventory + price.
-      fields: query.fields || 'inventory,price',
-      priceType: query.priceType || 'msrp',
-      company: query.company || this.company,
-      customer: query.customer || this.customer,
-      currencyCode: query.currencyCode || this.currencyCode,
-      availabilityType: query.availabilityType || 'AVAILABLE',
-      realTimeInventory:
-        query.realTimeInventory !== undefined ? query.realTimeInventory : false,
+      // Keep supplier defaults minimal; allow the caller to opt-in to additional filters.
       ...query
     };
+
+    // Only set pricing-related parameters if the caller explicitly requests them.
+    if (query.fields != null) params.fields = query.fields;
+    if (query.priceType != null) params.priceType = query.priceType;
+    if (query.company != null) params.company = query.company;
+    if (query.currencyCode != null) params.currencyCode = query.currencyCode;
+    if (query.customer != null) params.customer = query.customer;
+
+    // Only set availabilityType/realTimeInventory if explicitly provided.
+    if (query.availabilityType == null) delete params.availabilityType;
+    if (query.realTimeInventory == null) delete params.realTimeInventory;
 
     // WheelPros API is picky about some numeric filters (e.g. diameter must be "20.0", not 20).
     if (params.diameter != null) {
@@ -57,6 +63,10 @@ class WheelProsAdapter {
 
     // Avoid sending empty customer param.
     if (!params.customer) delete params.customer;
+    if (!params.company) delete params.company;
+    if (!params.currencyCode) delete params.currencyCode;
+    if (!params.fields) delete params.fields;
+    if (!params.priceType) delete params.priceType;
 
     const res = await this.products.request({
       method: 'GET',
@@ -71,6 +81,27 @@ class WheelProsAdapter {
     const res = await this.products.request({
       method: 'GET',
       url: `v1/details/${encodeURIComponent(externalSku)}`
+    });
+
+    return res.data;
+  }
+
+  async searchTires(query = {}) {
+    const params = {
+      page: Number(query.page || 1),
+      pageSize: Number(query.pageSize || 20),
+      ...query
+    };
+
+    // Remove undefined/empty
+    for (const k of Object.keys(params)) {
+      if (params[k] === undefined || params[k] === '') delete params[k];
+    }
+
+    const res = await this.products.request({
+      method: 'GET',
+      url: 'v1/search/tire',
+      params
     });
 
     return res.data;

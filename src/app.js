@@ -4,6 +4,7 @@ const morgan = require('morgan');
 const { vehiclesRouter } = require('./routes/vehicles.routes');
 const { wheelsRouter } = require('./routes/wheels.routes');
 const { packagesRouter } = require('./routes/packages.routes');
+const { tiresRouter } = require('./routes/tires.routes');
 
 function createApp({ config, services }) {
   const app = express();
@@ -33,6 +34,10 @@ function createApp({ config, services }) {
 
   app.use('/v1/packages', packagesRouter({
     packageEngineService: services.packageEngineService
+  }));
+
+  app.use('/v1/tires', tiresRouter({
+    wheelService: services.wheelService
   }));
 
   // Error handler
