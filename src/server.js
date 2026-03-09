@@ -7,6 +7,7 @@ const { createApp } = require('./app');
 const { VehicleService } = require('./services/VehicleService');
 const { FitmentService } = require('./services/FitmentService');
 const { WheelService } = require('./services/WheelService');
+const { WheelSizeCatalogService } = require('./services/WheelSizeCatalogService');
 const { TireService } = require('./services/TireService');
 const { PackageEngineService } = require('./services/PackageEngineService');
 const { TireSizeService } = require('./services/TireSizeService');
@@ -29,6 +30,13 @@ async function main() {
   const fitmentService = new FitmentService({
     db,
     provider: fitmentProvider,
+    cacheTtlDays: config.FITMENT_CACHE_TTL_DAYS
+  });
+
+  const wheelSizeCatalogService = new WheelSizeCatalogService({
+    db,
+    baseUrl: config.WHEEL_SIZE_BASE_URL,
+    apiKey: config.WHEEL_SIZE_API_KEY,
     cacheTtlDays: config.FITMENT_CACHE_TTL_DAYS
   });
 
@@ -69,7 +77,7 @@ async function main() {
 
   const app = createApp({
     config,
-    services: { vehicleService, fitmentService, wheelService, tireService, packageEngineService }
+    services: { vehicleService, fitmentService, wheelService, wheelSizeCatalogService, tireService, packageEngineService }
   });
 
   app.listen(config.PORT, () => {

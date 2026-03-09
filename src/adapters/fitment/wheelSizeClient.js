@@ -27,6 +27,13 @@ class WheelSizeClient {
     return { user_key: this.apiKey, ...params };
   }
 
+  async years() {
+    const res = await this.http.get('/years/', {
+      params: this._authParams({})
+    });
+    return res.data;
+  }
+
   async makes({ year, region, ordering, lang, brands, brandsExclude } = {}) {
     const res = await this.http.get('/makes/', {
       params: this._authParams({

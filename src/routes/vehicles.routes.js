@@ -1,6 +1,6 @@
 const express = require('express');
 
-function vehiclesRouter({ vehicleService, fitmentService, wheelService }) {
+function vehiclesRouter({ vehicleService, fitmentService, wheelService, wheelSizeCatalogService }) {
   const r = express.Router();
 
   // Vehicle lookup (Y/M/M) via Wheel-Size, with DB persistence + cache.
@@ -36,21 +36,52 @@ function vehiclesRouter({ vehicleService, fitmentService, wheelService }) {
     }
   });
 
+  r.get('/years', async (req, res, next) => {
+    try {
+      if (!wheelSizeCatalogService) return res.status(500).json({ error: 'wheel_size_not_configured' });
+      const payload = await wheelSizeCatalogService.listYears();
+      const years = Array.isArray(payload?.data) ? payload.data.map((y) => Number(y)).filter((n) => Number.isFinite(n)).sort((a, b) => a - b) : [];
+      res.json({ results: years });
+    } catch (e) {
+      next(e);
+    }
+  });
+
+  // Makes (Wheel-Size API + DB cache)
   r.get('/makes', async (req, res, next) => {
     try {
-      const year = req.query.year ? Number(req.query.year) : undefined;
-      const makes = await vehicleService.listMakes({ year });
+      if (!wheelSizeCatalogService) return res.status(500).json({ error: 'wheel_size_not_configured' });
+      const year = req.query.year ? Number(req.query.year) : null;
+      if (!year || !Number.isFinite(year)) return res.status(400).json({ error: 'year_required' });
+
+      const payload = await wheelSizeCatalogService.listMakes({ year });
+      const makes = Array.isArray(payload?.data)
+        ? payload.data.map((m) => m?.name || m?.name_en || m?.slug).filter(Boolean)
+        : [];
+
       res.json({ results: makes });
     } catch (e) {
       next(e);
     }
   });
 
+  // Models (Wheel-Size API + DB cache)
   r.get('/models', async (req, res, next) => {
     try {
-      const year = req.query.year ? Number(req.query.year) : undefined;
-      const make = req.query.make ? String(req.query.make) : undefined;
-      const models = await vehicleService.listModels({ year, make });
+      if (!wheelSizeCatalogService) return res.status(500).json({ error: 'wheel_size_not_configured' });
+      const year = req.query.year ? Number(req.query.year) : null;
+      const make = req.query.make ? String(req.query.make) : null;
+      if (!year || !Number.isFinite(year)) return res.status(400).json({ error: 'year_required' });
+      if (!make) return res.status(400).json({ error: 'make_required' });
+
+      // Wheel-Size models endpoint requires make slug; we resolve like FitmentAdapter does.
+      const makeSlug = make.trim().toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      const payload = await wheelSizeCatalogService.listModels({ year, make: makeSlug });
+
+      const models = Array.isArray(payload?.data)
+        ? payload.data.map((m) => m?.name || m?.name_en || m?.slug).filter(Boolean)
+        : [];
+
       res.json({ results: models });
     } catch (e) {
       next(e);
