@@ -1,6 +1,8 @@
 const { randomUUID } = require('crypto');
 
 class WheelService {
+  
+
   async listCompatibleWheels({ vehicleId, page = 1, pageSize = 20, targetDiameter = null }) {
     // 1) Load vehicle fitment
     const { rows } = await this.db.query({
@@ -73,6 +75,9 @@ class WheelService {
 
     const results = [];
 
+    const oemWidthIn = pickOem(widthMin, widthMax);
+    const oemOffsetMm = pickOem(offMin, offMax);
+
     for (const r of supplierResults) {
       const identity = await this._resolveIdentity({ supplierId, supplierCode, externalSku: r.sku, skuType: 'wheel' });
 
@@ -83,21 +88,55 @@ class WheelService {
       const inv = this.wheelAdapter.toInventory(r);
       const msrp = this.wheelAdapter.extractMsrp ? this.wheelAdapter.extractMsrp(r) : null;
 
-      // Post-filter for width range (±1) and diameter range when those are ranges.
-      if (diaMin != null && spec.diameterIn != null && spec.diameterIn < diaMin) continue;
-      if (diaMax != null && spec.diameterIn != null && spec.diameterIn > diaMax) continue;
+      // Diameter: must match requested diameter (if diaMin==diaMax)
+      if (diaMin != null && diaMax != null && diaMin === diaMax) {
+        if (spec.diameterIn == null || spec.diameterIn !== diaMin) continue;
+      } else {
+        if (diaMin != null && spec.diameterIn != null && spec.diameterIn < diaMin) continue;
+        if (diaMax != null && spec.diameterIn != null && spec.diameterIn > diaMax) continue;
+      }
 
+      // Width range filter (±1)
       if (widthMin != null && spec.widthIn != null && spec.widthIn < (widthMin - widthTol)) continue;
       if (widthMax != null && spec.widthIn != null && spec.widthIn > (widthMax + widthTol)) continue;
 
-      // Offset already filtered by minOffset/maxOffset, but keep safe check.
+      // Offset range filter (±10)
       if (offMin != null && spec.offsetMm != null && spec.offsetMm < (offMin - offsetTol)) continue;
       if (offMax != null && spec.offsetMm != null && spec.offsetMm > (offMax + offsetTol)) continue;
 
-      // Center bore: replacement wheel can be larger.
-      // If wheel has a known center bore, enforce >= vehicle center bore.
-      // If wheel center bore is missing, allow it (pragmatic) so we still show results.
+      // Center bore rules:
+      // - If known and smaller than vehicle -> reject.
       if (centerBoreMm != null && spec.centerBoreMm != null && spec.centerBoreMm < centerBoreMm) continue;
+
+      // Fitment scoring
+      let score = 100;
+
+      // Width penalty: -5 per 0.5" difference from OEM width
+      if (oemWidthIn != null && spec.widthIn != null) {
+        const diff = Math.abs(spec.widthIn - oemWidthIn);
+        score -= (diff / 0.5) * 5;
+      }
+
+      // Offset penalty: -1 per mm difference from OEM offset
+      if (oemOffsetMm != null && spec.offsetMm != null) {
+        const diff = Math.abs(spec.offsetMm - oemOffsetMm);
+        score -= diff * 1;
+      }
+
+      // Center bore penalty:
+      // - equal => no penalty
+      // - larger => -2 points
+      if (centerBoreMm != null && spec.centerBoreMm != null) {
+        if (spec.centerBoreMm > centerBoreMm) score -= 2;
+      }
+
+      score = Math.max(0, Math.min(100, Math.round(score)));
+
+      const fitmentCategory =
+        score >= 90 ? 'perfect'
+          : score >= 75 ? 'flush'
+            : score >= 60 ? 'aggressive'
+              : 'extreme';
 
       const primaryImage = Array.isArray(r.images) && r.images.length
         ? (r.images.find((i) => String(i.aspect || '').toLowerCase() === 'standard') || r.images[0])
@@ -117,9 +156,14 @@ class WheelService {
           global: inv.globalStock ?? null,
           type: inv.inventoryType ?? null
         },
-        msrp: msrp ? { amount: msrp.amount, currency: msrp.currency, priceType: msrp.priceType } : null
+        msrp: msrp ? { amount: msrp.amount, currency: msrp.currency, priceType: msrp.priceType } : null,
+        fitmentScore: score,
+        fitmentCategory
       });
     }
+
+    // Sort by fitmentScore desc
+    results.sort((a, b) => (b.fitmentScore ?? 0) - (a.fitmentScore ?? 0));
 
     return {
       results,
@@ -416,6 +460,16 @@ class WheelService {
     });
     return id;
   }
+}
+
+function pickOem(min, max) {
+  const a = min != null ? Number(min) : null;
+  const b = max != null ? Number(max) : null;
+  if (a == null && b == null) return null;
+  if (a != null && b == null) return a;
+  if (a == null && b != null) return b;
+  if (a === b) return a;
+  return (a + b) / 2;
 }
 
 module.exports = { WheelService };
