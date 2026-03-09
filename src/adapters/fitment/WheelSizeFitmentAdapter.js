@@ -171,6 +171,22 @@ function normalizeFitmentFromSearchByModel(rows) {
     }
   }
 
+  const wheelSizes = Array.from(
+    new Set(
+      stockWheelPairs
+        .flatMap((wp) => ['front', 'rear'].map((axle) => wp?.[axle]).filter(Boolean))
+        .map((a) => {
+          const d = parseMaybeNumber(a?.rim_diameter);
+          const w = parseMaybeNumber(a?.rim_width);
+          const off = parseMaybeNumber(a?.rim_offset);
+          if (d == null && w == null && off == null) return null;
+          // stable key for de-dupe
+          return JSON.stringify({ diameterIn: d, widthIn: w, offsetMm: off });
+        })
+        .filter(Boolean)
+    )
+  ).map((s) => JSON.parse(s));
+
   return {
     boltPattern,
     centerBoreMm,
@@ -178,6 +194,7 @@ function normalizeFitmentFromSearchByModel(rows) {
     wheelWidthRangeIn: range(widthVals),
     offsetRangeMm: range(offsetVals),
     oemTireSizes: Array.from(new Set(oemTires)).sort(),
+    wheelSizes,
 
     // Rough metadata for FitmentService provenance.
     confidence: stockWheelPairs.length ? 0.85 : 0.6,

@@ -27,6 +27,8 @@ const envSchema = z.object({
 
   // Fitment caching
   FITMENT_CACHE_TTL_DAYS: z.coerce.number().default(7),
+  // Back-compat alias (older env)
+  FITMENT_CACHE_DAYS: z.coerce.number().optional(),
 
   // TireConnect scrape adapter (interim)
   TIRECONNECT_WIDGET_ID: z.string().optional(),
@@ -44,6 +46,10 @@ function loadConfig(processEnv = process.env) {
   const cfg = { ...parsed.data };
   if (!cfg.WHEEL_SIZE_BASE_URL && cfg.WHEELSIZE_BASE_URL) cfg.WHEEL_SIZE_BASE_URL = cfg.WHEELSIZE_BASE_URL;
   if (!cfg.WHEEL_SIZE_API_KEY && cfg.WHEELSIZE_API_KEY) cfg.WHEEL_SIZE_API_KEY = cfg.WHEELSIZE_API_KEY;
+
+  // Back-compat: FITMENT_CACHE_DAYS → FITMENT_CACHE_TTL_DAYS
+  if (cfg.FITMENT_CACHE_DAYS != null) cfg.FITMENT_CACHE_TTL_DAYS = cfg.FITMENT_CACHE_DAYS;
+
   return cfg;
 }
 
