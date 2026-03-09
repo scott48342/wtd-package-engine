@@ -1,7 +1,7 @@
 const { randomUUID } = require('crypto');
 
 class WheelService {
-  async listCompatibleWheels({ vehicleId, page = 1, pageSize = 20 }) {
+  async listCompatibleWheels({ vehicleId, page = 1, pageSize = 20, targetDiameter = null }) {
     // 1) Load vehicle fitment
     const { rows } = await this.db.query({
       text: `
@@ -24,8 +24,16 @@ class WheelService {
     const boltPattern = (f.bolt_pattern || '').trim();
     const centerBoreMm = f.center_bore_mm != null ? Number(f.center_bore_mm) : null;
 
-    const diaMin = f.min_wheel_dia_in != null ? Number(f.min_wheel_dia_in) : null;
-    const diaMax = f.max_wheel_dia_in != null ? Number(f.max_wheel_dia_in) : null;
+    let diaMin = f.min_wheel_dia_in != null ? Number(f.min_wheel_dia_in) : null;
+    let diaMax = f.max_wheel_dia_in != null ? Number(f.max_wheel_dia_in) : null;
+
+    if (targetDiameter != null) {
+      const td = Number(targetDiameter);
+      if (Number.isFinite(td)) {
+        diaMin = td;
+        diaMax = td;
+      }
+    }
     const widthMin = f.min_wheel_w_in != null ? Number(f.min_wheel_w_in) : null;
     const widthMax = f.max_wheel_w_in != null ? Number(f.max_wheel_w_in) : null;
     const offMin = f.min_offset_mm != null ? Number(f.min_offset_mm) : null;

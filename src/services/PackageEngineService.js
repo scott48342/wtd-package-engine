@@ -14,6 +14,57 @@ class PackageEngineService {
    * Generate package recommendations.
    * MVP: uses wheel search + fitment constraints; tire integration can be added later.
    */
+  async plusSize({ vehicleId, targetDiameter, tolerancePct = 3, maxTireWidthDelta = 20, wheelPageSize = 20 }) {
+    const vehicle = await this.vehicleService.getVehicleById(vehicleId);
+    if (!vehicle) {
+      const err = new Error('vehicle_not_found');
+      err.status = 404;
+      throw err;
+    }
+
+    const fitment = await this.fitmentService.getFitmentForVehicle(vehicle);
+    const oem = (fitment?.fitment?.oemTireSizes || []).map(normalizeTireSize).filter(Boolean);
+
+    const baselineTireSize = oem[0] || null;
+    const baselineParsed = baselineTireSize ? this.tireSizeService.parseSize(baselineTireSize) : null;
+    const baselineGeom = baselineParsed ? this.tireSizeService.computeGeometry(baselineParsed) : null;
+
+    const targetDia = Number(targetDiameter);
+    if (!Number.isFinite(targetDia)) {
+      const err = new Error('targetDiameter_required');
+      err.status = 400;
+      throw err;
+    }
+
+    const recTires = baselineParsed && baselineGeom
+      ? recommendPlusSizeTires({
+        base: { parsed: baselineParsed, geom: baselineGeom },
+        targetWheelDiameterIn: targetDia,
+        tolerancePct,
+        maxTireWidthDelta
+      })
+      : [];
+
+    // Wheel recommendations for target diameter.
+    const wheelData = await this.wheelService.listCompatibleWheels({
+      vehicleId,
+      page: 1,
+      pageSize: wheelPageSize,
+      targetDiameter: targetDia
+    });
+
+    return {
+      vehicleId,
+      vehicle: { id: vehicle.id, year: vehicle.year, make: vehicle.make, model: vehicle.model },
+      targetDiameter: targetDia,
+      baselineTireSize,
+      baselineOverallDiameterIn: baselineGeom?.overallDiameterIn ?? null,
+      tolerancePct,
+      recommendedTireSizes: recTires,
+      wheels: wheelData
+    };
+  }
+
   async recommend({ vehicleId, preferences }) {
     const vehicle = await this.vehicleService.getVehicleById(vehicleId);
     if (!vehicle) {
@@ -127,6 +178,70 @@ class PackageEngineService {
       recommendations: recs
     };
   }
+}
+
+function normalizeTireSize(s) {
+  if (!s) return null;
+  // Ignore ZR; normalize to standard format that TireSizeService can parse.
+  return String(s).trim().toUpperCase().replace(/\s+/g, '').replace('ZR', 'R');
+}
+
+function recommendPlusSizeTires({ base, targetWheelDiameterIn, tolerancePct, maxTireWidthDelta }) {
+  const baseWidth = base.parsed.widthMm;
+  const baseOd = base.geom.overallDiameterIn;
+
+  const widths = [];
+  for (let d = 0; d <= maxTireWidthDelta; d += 10) {
+    widths.push(baseWidth + d);
+    if (d !== 0) widths.push(baseWidth - d);
+  }
+
+  const out = [];
+
+  for (const w of widths) {
+    if (!Number.isFinite(w) || w < 155 || w > 405) continue;
+
+    // Solve aspect ratio to match overall diameter:
+    // baseOd = targetDia + 2 * (w * (ar/100))/25.4
+    const sidewallIn = (baseOd - targetWheelDiameterIn) / 2;
+    if (sidewallIn <= 0) continue;
+
+    const arRaw = (sidewallIn * 25.4) / w * 100;
+    if (!Number.isFinite(arRaw)) continue;
+
+    // Round to nearest 5 (common aspect ratios)
+    const ar = Math.round(arRaw / 5) * 5;
+    if (ar < 20 || ar > 85) continue;
+
+    const size = `${w}/${ar}R${targetWheelDiameterIn % 1 === 0 ? targetWheelDiameterIn.toFixed(0) : String(targetWheelDiameterIn)}`;
+
+    // compute overall diameter manually
+    const sidewall2In = (w * (ar / 100)) / 25.4;
+    const od = targetWheelDiameterIn + (2 * sidewall2In);
+
+    const delta = od - baseOd;
+    const pct = (delta / baseOd) * 100;
+
+    if (Math.abs(pct) > tolerancePct) continue;
+
+    out.push({
+      size,
+      overallDiameterIn: Math.round(od * 1000) / 1000,
+      deltaOverallDiameterIn: Math.round(delta * 1000) / 1000,
+      deltaPct: Math.round(pct * 1000) / 1000
+    });
+  }
+
+  // Deduplicate and rank by |deltaPct|
+  const seen = new Set();
+  const uniq = [];
+  for (const r of out.sort((a, b) => Math.abs(a.deltaPct) - Math.abs(b.deltaPct))) {
+    if (seen.has(r.size)) continue;
+    seen.add(r.size);
+    uniq.push(r);
+  }
+
+  return uniq;
 }
 
 module.exports = { PackageEngineService };

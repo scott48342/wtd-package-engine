@@ -64,8 +64,9 @@ function vehiclesRouter({ vehicleService, fitmentService, wheelService }) {
 
       const page = req.query.page ? Number(req.query.page) : 1;
       const pageSize = req.query.pageSize ? Number(req.query.pageSize) : 20;
+      const targetDiameter = req.query.targetDiameter != null ? Number(req.query.targetDiameter) : null;
 
-      const data = await wheelService.listCompatibleWheels({ vehicleId, page, pageSize });
+      const data = await wheelService.listCompatibleWheels({ vehicleId, page, pageSize, targetDiameter });
       res.json(data);
     } catch (e) {
       next(e);
