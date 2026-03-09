@@ -182,8 +182,13 @@ class PackageEngineService {
 
 function normalizeTireSize(s) {
   if (!s) return null;
-  // Ignore ZR; normalize to standard format that TireSizeService can parse.
-  return String(s).trim().toUpperCase().replace(/\s+/g, '').replace('ZR', 'R');
+  // Ignore ZR, strip load/speed suffixes.
+  return String(s)
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, '')
+    .replace('ZR', 'R')
+    .replace(/(\d{3}\/\d{2,3}R\d{2}(?:\.\d)?).*/, '$1');
 }
 
 function recommendPlusSizeTires({ base, targetWheelDiameterIn, tolerancePct, maxTireWidthDelta }) {
