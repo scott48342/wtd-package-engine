@@ -45,9 +45,10 @@ class WheelService {
       pageSize: limit,
       // Filters
       ...(boltPattern ? { boltPattern } : {}),
-      // If min==max, use exact diameter/width to reduce noise.
+      // If min==max, use exact diameter to reduce noise.
       ...(diaMin != null && diaMax != null && diaMin === diaMax ? { diameter: diaMin } : {}),
-      ...(widthMin != null && widthMax != null && widthMin === widthMax ? { width: widthMin } : {}),
+      // NOTE: WheelPros width filtering is unreliable (returns 0 even when widths exist),
+      // so we do NOT pass width as a supplier filter; we post-filter locally instead.
       ...(offMin != null ? { minOffset: offMin - offsetTol } : {}),
       ...(offMax != null ? { maxOffset: offMax + offsetTol } : {}),
 
