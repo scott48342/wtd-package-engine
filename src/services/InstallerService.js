@@ -137,30 +137,43 @@ class InstallerService {
     // Places API doesn't directly geocode ZIPs, so we still use our ZIP→lat/lon resolver.
     const origin = await this.getZipLatLon(zip);
 
-    // Use Nearby Search with a broad keyword. You can tune this later (types, rankby, radius, etc.).
+    // Use Nearby Search. We'll try a couple keywords and pick the closest within ~15 miles.
     const url = `${this.googlePlacesBaseUrl}/place/nearbysearch/json`;
-    const params = {
-      key: this.googlePlacesApiKey,
-      location: `${origin.lat},${origin.lon}`,
-      radius: 50_000, // meters (~31mi)
-      keyword: 'tire installer'
-    };
+    const radiusMeters = 24_140; // ~15 miles
+    const keywords = ['tire shop', 'tire store'];
 
-    const res = await this.http.get(url, { params });
-    const data = res.data || {};
-    if (data.status && data.status !== 'OK') {
-      // e.g. REQUEST_DENIED, OVER_QUERY_LIMIT, ZERO_RESULTS
-      return { installer: null, _googleStatus: data.status, _googleError: data.error_message || null };
+    const candidates = [];
+
+    for (const keyword of keywords) {
+      const params = {
+        key: this.googlePlacesApiKey,
+        location: `${origin.lat},${origin.lon}`,
+        radius: radiusMeters,
+        keyword
+      };
+
+      const res = await this.http.get(url, { params });
+      const data = res.data || {};
+      if (data.status && data.status !== 'OK') {
+        // e.g. REQUEST_DENIED, OVER_QUERY_LIMIT, ZERO_RESULTS
+        // If one keyword fails, try the next.
+        continue;
+      }
+
+      const results = Array.isArray(data.results) ? data.results : [];
+      for (const r of results) {
+        const lat = r.geometry?.location?.lat;
+        const lon = r.geometry?.location?.lng;
+        if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+        const d = haversineMiles(origin.lat, origin.lon, Number(lat), Number(lon));
+        candidates.push({ r, distanceMiles: d, keyword });
+      }
     }
 
-    const first = Array.isArray(data.results) ? data.results[0] : null;
-    if (!first) return { installer: null };
+    const best = candidates.sort((a, b) => a.distanceMiles - b.distanceMiles)[0];
+    if (!best) return { installer: null };
 
-    const lat = first.geometry?.location?.lat;
-    const lon = first.geometry?.location?.lng;
-    const d = (Number.isFinite(lat) && Number.isFinite(lon))
-      ? haversineMiles(origin.lat, origin.lon, Number(lat), Number(lon))
-      : null;
+    const first = best.r;
 
     return {
       installer: {
@@ -173,9 +186,10 @@ class InstallerService {
         zip: zip,
         phone: null,
         website: null,
-        distanceMiles: d != null ? round(d, 2) : null,
+        distanceMiles: round(best.distanceMiles, 2),
         source: 'google_places',
-        placeId: first.place_id || null
+        placeId: first.place_id || null,
+        matchedKeyword: best.keyword
       }
     };
   }
