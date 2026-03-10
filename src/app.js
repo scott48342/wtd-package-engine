@@ -12,6 +12,18 @@ function createApp({ config, services }) {
   app.disable('x-powered-by');
   app.use(morgan('dev'));
 
+  // CORS (so http://localhost:3000 can call the API during development)
+  // If CORS_ALLOW_ORIGIN is unset, default to allowing localhost dev origins.
+  const allowOrigin = config.CORS_ALLOW_ORIGIN || 'http://localhost:3000';
+  app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', allowOrigin);
+    res.header('Vary', 'Origin');
+    res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-API-Key, X-Requested-With');
+    if (req.method === 'OPTIONS') return res.sendStatus(204);
+    next();
+  });
+
   // Optional API key gate (MVP)
   app.use((req, res, next) => {
     if (!config.API_KEY) return next();

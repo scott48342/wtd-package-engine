@@ -37,7 +37,10 @@ const envSchema = z.object({
 
   // Google Places (installer lookup)
   GOOGLE_PLACES_API_KEY: z.string().optional(),
-  GOOGLE_PLACES_BASE_URL: z.string().default('https://maps.googleapis.com/maps/api')
+  GOOGLE_PLACES_BASE_URL: z.string().default('https://maps.googleapis.com/maps/api'),
+
+  // CORS (for local React dev UI)
+  CORS_ALLOW_ORIGIN: z.string().optional()
 });
 
 function loadConfig(processEnv = process.env) {
