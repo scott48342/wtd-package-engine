@@ -241,6 +241,44 @@ class WheelService {
     };
   }
 
+  async getWheelDetails(externalSku) {
+    if (!externalSku) {
+      const err = new Error('sku_required');
+      err.status = 400;
+      throw err;
+    }
+
+    const rec = await this.wheelAdapter.getWheelDetails(externalSku);
+    const spec = this.wheelAdapter.toWheelSpec(rec);
+    const inv = this.wheelAdapter.toInventory(rec);
+    const msrp = this.wheelAdapter.extractMsrp ? this.wheelAdapter.extractMsrp(rec) : null;
+
+    const primaryImage = Array.isArray(rec?.images) && rec.images.length
+      ? (rec.images.find((i) => String(i.aspect || '').toLowerCase() === 'standard') || rec.images[0])
+      : null;
+
+    return {
+      sku: externalSku,
+      title: rec?.title || null,
+      brand: rec?.brand?.description || rec?.brand?.parent || rec?.brand || null,
+      style: spec.model || rec?.properties?.model || null,
+      diameter: spec.diameterIn,
+      width: spec.widthIn,
+      offset: spec.offsetMm,
+      finish: spec.finish,
+      boltPattern: spec.boltPattern,
+      centerBoreMm: spec.centerBoreMm,
+      primaryImage: primaryImage?.imageUrlLarge || primaryImage?.imageUrlMedium || primaryImage?.imageUrlSmall || primaryImage?.imageUrlOriginal || null,
+      images: Array.isArray(rec?.images) ? rec.images : [],
+      inventory: {
+        local: inv.localStock ?? null,
+        global: inv.globalStock ?? null,
+        type: inv.inventoryType ?? null
+      },
+      msrp: msrp ? { amount: msrp.amount, currency: msrp.currency, priceType: msrp.priceType } : null
+    };
+  }
+
   async searchWheels(query) {
     const raw = await this.wheelAdapter.searchWheels(query);
 

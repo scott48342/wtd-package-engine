@@ -23,6 +23,19 @@ function wheelsRouter({ wheelService }) {
     }
   });
 
+  // Wheel detail
+  // GET /v1/wheels/{sku}
+  r.get('/:sku', async (req, res, next) => {
+    try {
+      const sku = req.params.sku ? String(req.params.sku) : null;
+      if (!sku) return res.status(400).json({ error: 'sku_required' });
+      const out = await wheelService.getWheelDetails(sku);
+      res.json(out);
+    } catch (e) {
+      next(e);
+    }
+  });
+
   return r;
 }
 
