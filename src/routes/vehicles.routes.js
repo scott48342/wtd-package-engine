@@ -12,6 +12,7 @@ function vehiclesRouter({ vehicleService, fitmentService, wheelService, wheelSiz
       const model = req.query.model ? String(req.query.model).trim() : null;
       const modification = req.query.modification ? String(req.query.modification).trim() : null;
       const trim = req.query.trim ? String(req.query.trim).trim() : null;
+      const trimLevel = req.query.trimLevel ? String(req.query.trimLevel).trim() : null;
 
       if (!year || !Number.isFinite(year)) return res.status(400).json({ error: 'year_required' });
       if (!make) return res.status(400).json({ error: 'make_required' });
@@ -20,16 +21,24 @@ function vehiclesRouter({ vehicleService, fitmentService, wheelService, wheelSiz
       // Resolve/create a vehicle identity for this Y/M/M.
       const vehicle = await vehicleService.getOrCreateVehicle({ year, make, model });
 
-      // If a modification is provided, bind it to this vehicle.
-      const vehicleModification = modification
-        ? await vehicleService.getOrCreateVehicleModification({ vehicleId: vehicle.id, modification, trim })
+      // If a trimLevel is provided without a modification, resolve the best Wheel-Size modification.
+      let resolved = null;
+      if (!modification && trimLevel) {
+        resolved = await fitmentService.resolveModificationForTrimLevel({ year, make, model, trimLevel });
+      }
+      const effectiveModification = modification || resolved?.modification || null;
+      const effectiveTrim = trim || resolved?.trim || null;
+
+      // If a modification is provided (or resolved), bind it to this vehicle.
+      const vehicleModification = effectiveModification
+        ? await vehicleService.getOrCreateVehicleModification({ vehicleId: vehicle.id, modification: effectiveModification, trim: effectiveTrim })
         : null;
 
       // Fetch fitment (cached + persisted), scoped to modification when present.
       const data = await fitmentService.getFitmentForVehicle(vehicle, {
         vehicleModificationId: vehicleModification?.id || null,
-        modification: modification || null,
-        trim: trim || null
+        modification: effectiveModification || null,
+        trim: effectiveTrim || null
       });
 
       const bp = data?.fitment?.boltPattern || null;
@@ -74,7 +83,9 @@ function vehiclesRouter({ vehicleService, fitmentService, wheelService, wheelSiz
   });
 
   // Trims/modifications (Wheel-Size)
-  // GET /v1/vehicles/trims?year=2020&make=Audi&model=S5
+  // NOTE: For many vehicles, Wheel-Size "modification" is engine/drive and contains trim_levels[]
+  // (WT/LT/LTZ/etc). Our adapter expands those into user-facing trims.
+  // GET /v1/vehicles/trims?year=2020&make=Chevrolet&model=Silverado%202500%20HD
   r.get('/trims', async (req, res, next) => {
     try {
       const year = req.query.year ? Number(req.query.year) : null;

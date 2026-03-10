@@ -133,44 +133,107 @@ class WheelSizeFitmentAdapter {
     const mods = payload?.data || [];
     if (!Array.isArray(mods)) return [];
 
-    // Normalize to {modification, trim}
-    const out = mods
-      .map((m) => ({
-        modification: m?.slug || null,
-        trim: m?.trim || m?.name || m?.slug || null,
-        trimLevel: m?.trim_level ?? null,
-        trimScoring: m?.trim_scoring ?? null
-      }))
-      .filter((m) => m.modification && m.trim);
+    // Prefer marketing trim levels when available.
+    // Many vehicles have trim_levels[] inside each modification (where modification is often engine/drive).
+    // We expand those into user-facing trim options while keeping the correct modification slug.
+    const expanded = [];
 
-    // De-dupe by *trim label* (Wheel-Size often returns many modifications for the same trim)
-    // Pick the "best" modification using trim_scoring (desc), then stable tie-breaker.
-    const bestByTrim = new Map();
+    for (const m of mods) {
+      const modification = m?.slug || null;
+      if (!modification) continue;
+
+      const engine = m?.engine || null;
+      const engineLabel = engine?.capacity && engine?.fuel
+        ? `${engine.capacity}L ${engine.fuel}`
+        : engine?.fuel || null;
+
+      const levels = Array.isArray(m?.trim_levels) ? m.trim_levels.filter(Boolean) : [];
+
+      if (levels.length) {
+        for (const level of levels) {
+          expanded.push({
+            modification,
+            trim: String(level),
+            trimLevel: String(level),
+            trimScoring: m?.trim_scoring ?? null,
+            engine: engineLabel,
+            engineCode: engine?.code || null
+          });
+        }
+      } else {
+        // Fallback: use whatever Wheel-Size calls trim/name (often engine-based)
+        expanded.push({
+          modification,
+          trim: m?.trim || m?.name || m?.slug || null,
+          trimLevel: m?.trim_level ?? null,
+          trimScoring: m?.trim_scoring ?? null,
+          engine: engineLabel,
+          engineCode: engine?.code || null
+        });
+      }
+    }
+
+    const out = expanded.filter((t) => t.modification && t.trim);
+
+    // De-dupe by *trim label + engine* so we can show e.g. LT (Gas) and LT (Diesel)
+    const bestByKey = new Map();
     for (const t of out) {
-      const key = String(t.trim).trim().toLowerCase();
-      const existing = bestByTrim.get(key);
+      const key = `${String(t.trim).trim().toLowerCase()}|${String(t.engine || '').trim().toLowerCase()}`;
+      const existing = bestByKey.get(key);
       if (!existing) {
-        bestByTrim.set(key, t);
+        bestByKey.set(key, t);
         continue;
       }
       const aScore = Number(existing.trimScoring) || 0;
       const bScore = Number(t.trimScoring) || 0;
       if (bScore > aScore) {
-        bestByTrim.set(key, t);
+        bestByKey.set(key, t);
         continue;
       }
-      // Tie-breaker: keep lexicographically smallest modification id for stability
       if (bScore === aScore && String(t.modification) < String(existing.modification)) {
-        bestByTrim.set(key, t);
+        bestByKey.set(key, t);
       }
     }
 
-    const uniq = Array.from(bestByTrim.values());
+    const uniq = Array.from(bestByKey.values());
 
-    // Sort for nicer UI: trim_scoring desc, then trim asc
-    uniq.sort((a, b) => (Number(b.trimScoring) || 0) - (Number(a.trimScoring) || 0) || String(a.trim).localeCompare(String(b.trim)));
+    // Sort: trim asc, then engine asc (keeps WT/LT/LTZ grouped)
+    uniq.sort((a, b) => String(a.trim).localeCompare(String(b.trim)) || String(a.engine || '').localeCompare(String(b.engine || '')));
 
     return uniq;
+  }
+
+  async resolveModificationForTrimLevel({ year, make, model, trimLevel }) {
+    const y = Number(year);
+    if (!Number.isFinite(y)) throw new Error('year_required');
+
+    const makeSlug = await this._resolveMakeSlug(make, y);
+    const modelSlug = await this._resolveModelSlug(makeSlug, model, y);
+
+    const payload = await this.client.modifications({
+      make: makeSlug,
+      model: modelSlug,
+      year: y,
+      trimLevel: String(trimLevel)
+    });
+
+    const mods = payload?.data || [];
+    if (!Array.isArray(mods) || !mods.length) return null;
+
+    // pick best scoring mod
+    const best = mods
+      .slice()
+      .sort((a, b) => (Number(b?.trim_scoring) || 0) - (Number(a?.trim_scoring) || 0) || String(a?.slug).localeCompare(String(b?.slug)))[0];
+
+    if (!best?.slug) return null;
+
+    return {
+      modification: best.slug,
+      trim: String(trimLevel),
+      trimLevel: String(trimLevel),
+      engine: best?.engine?.capacity && best?.engine?.fuel ? `${best.engine.capacity}L ${best.engine.fuel}` : (best?.engine?.fuel || null),
+      engineCode: best?.engine?.code || null
+    };
   }
 
   async _resolveModificationSlug({ makeSlug, modelSlug, year, trim }) {

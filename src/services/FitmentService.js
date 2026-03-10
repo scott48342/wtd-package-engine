@@ -54,6 +54,15 @@ class FitmentService {
     return await this.provider.listTrims({ year, make, model });
   }
 
+  async resolveModificationForTrimLevel({ year, make, model, trimLevel }) {
+    if (!this.provider?.resolveModificationForTrimLevel) {
+      const err = new Error('trim_level_resolution_not_supported');
+      err.status = 500;
+      throw err;
+    }
+    return await this.provider.resolveModificationForTrimLevel({ year, make, model, trimLevel });
+  }
+
   /**
    * Creates/updates vehicle row.
    * Requires `vehicle.id` to be present.
