@@ -143,14 +143,29 @@ class WheelSizeFitmentAdapter {
       }))
       .filter((m) => m.modification && m.trim);
 
-    // De-dupe by modification
-    const seen = new Set();
-    const uniq = [];
+    // De-dupe by *trim label* (Wheel-Size often returns many modifications for the same trim)
+    // Pick the "best" modification using trim_scoring (desc), then stable tie-breaker.
+    const bestByTrim = new Map();
     for (const t of out) {
-      if (seen.has(t.modification)) continue;
-      seen.add(t.modification);
-      uniq.push(t);
+      const key = String(t.trim).trim().toLowerCase();
+      const existing = bestByTrim.get(key);
+      if (!existing) {
+        bestByTrim.set(key, t);
+        continue;
+      }
+      const aScore = Number(existing.trimScoring) || 0;
+      const bScore = Number(t.trimScoring) || 0;
+      if (bScore > aScore) {
+        bestByTrim.set(key, t);
+        continue;
+      }
+      // Tie-breaker: keep lexicographically smallest modification id for stability
+      if (bScore === aScore && String(t.modification) < String(existing.modification)) {
+        bestByTrim.set(key, t);
+      }
     }
+
+    const uniq = Array.from(bestByTrim.values());
 
     // Sort for nicer UI: trim_scoring desc, then trim asc
     uniq.sort((a, b) => (Number(b.trimScoring) || 0) - (Number(a.trimScoring) || 0) || String(a.trim).localeCompare(String(b.trim)));
