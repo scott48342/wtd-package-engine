@@ -12,6 +12,7 @@ function packagesRouter({ packageEngineService }) {
   r.get('/plus-size', async (req, res, next) => {
     try {
       const vehicleId = req.query.vehicleId ? String(req.query.vehicleId) : null;
+      const vehicleModificationId = req.query.vehicleModificationId ? String(req.query.vehicleModificationId) : null;
       const targetDiameter = req.query.targetDiameter != null ? Number(req.query.targetDiameter) : null;
 
       if (!vehicleId) return res.status(400).json({ error: 'vehicleId_required' });
@@ -23,6 +24,7 @@ function packagesRouter({ packageEngineService }) {
 
       const out = await packageEngineService.plusSize({
         vehicleId,
+        vehicleModificationId,
         targetDiameter,
         tolerancePct,
         maxTireWidthDelta,

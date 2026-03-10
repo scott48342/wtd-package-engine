@@ -1,4 +1,4 @@
--- Warehouse Tire Direct - Package Engine (MVP)
+﻿-- Warehouse Tire Direct - Package Engine (MVP)
 -- PostgreSQL schema draft
 
 -- Enable extensions you may want later
@@ -102,9 +102,21 @@ create index if not exists vehicle_lookup_idx on vehicle(year, make, model);
 -- Fitment constraints at a vehicle level (can be expanded to axle-level later)
 -- vehicle_fitment is a normalized fitment record (not provider-specific).
 -- Source/provenance is captured in vehicle_fitment_source (below).
+create table if not exists vehicle_modification (
+  id                uuid primary key,
+  vehicle_id        uuid not null references vehicle(id) on delete cascade,
+  modification      text not null, -- Wheel-Size modification slug/id
+  trim              text,
+  created_at        timestamptz not null default now(),
+  unique(vehicle_id, modification)
+);
+
+create index if not exists vehicle_mod_vehicle_idx on vehicle_modification(vehicle_id);
+
 create table if not exists vehicle_fitment (
   id                uuid primary key,
   vehicle_id        uuid not null references vehicle(id) on delete cascade,
+  vehicle_modification_id uuid references vehicle_modification(id) on delete cascade,
   bolt_pattern      text,           -- e.g., 5x114.3
   center_bore_mm    numeric(6,2),
   min_offset_mm     numeric(6,2),
@@ -115,7 +127,7 @@ create table if not exists vehicle_fitment (
   max_wheel_w_in    numeric(5,2),
   notes             text,
   created_at        timestamptz not null default now(),
-  unique(vehicle_id)
+  unique(vehicle_id, vehicle_modification_id)
 );
 
 -- Fitment source persistence: record provenance per vehicle_fitment.
@@ -138,32 +150,20 @@ create table if not exists vehicle_fitment_source (
 create table if not exists vehicle_oem_tire_size (
   id                uuid primary key,
   vehicle_id        uuid not null references vehicle(id) on delete cascade,
+  vehicle_modification_id uuid references vehicle_modification(id) on delete cascade,
   size              text not null, -- 265/70R17
   position          text,          -- front|rear|all
   created_at        timestamptz not null default now()
 );
 
+create index if not exists vehicle_oem_tire_size_mod_idx on vehicle_oem_tire_size(vehicle_modification_id);
+
 -- ========== PRODUCT CACHE (normalized) ==========
 -- Keep a lightweight cache to speed up repeated searches and to support quoting.
 
--- Supplier → internal mapping. This is what keeps the package engine supplier-agnostic.
+-- Supplier â†’ internal mapping. This is what keeps the package engine supplier-agnostic.
 -- A single internal product can potentially map to multiple supplier SKUs over time.
-create table if not exists supplier_product_map (
-  id                uuid primary key,
-  supplier_id       uuid not null references supplier(id) on delete cascade,
-  supplier_sku      text not null,
 
-  -- Stable internal identity for the product.
-  internal_product_id uuid not null references product(id) on delete cascade,
-
-  -- Optional denormalized helper
-  sku_type          text not null, -- wheel|tire|accessory
-
-  created_at        timestamptz not null default now(),
-  unique(supplier_id, supplier_sku)
-);
-
-create index if not exists supplier_product_map_internal_idx on supplier_product_map(internal_product_id);
 
 -- IMPORTANT: internal product identity
 -- `product.id` is the stable internal product identity (maps to API `internalProductId`).
@@ -189,6 +189,24 @@ create table if not exists product (
   created_at        timestamptz not null default now(),
   updated_at        timestamptz not null default now()
 );
+
+create table if not exists supplier_product_map (
+  id                uuid primary key,
+  supplier_id       uuid not null references supplier(id) on delete cascade,
+  supplier_sku      text not null,
+
+  -- Stable internal identity for the product.
+  internal_product_id uuid not null references product(id) on delete cascade,
+
+  -- Optional denormalized helper
+  sku_type          text not null, -- wheel|tire|accessory
+
+  created_at        timestamptz not null default now(),
+  unique(supplier_id, supplier_sku)
+);
+
+create index if not exists supplier_product_map_internal_idx on supplier_product_map(internal_product_id);
+
 
 -- ========== STRUCTURED SPECS (indexed search) ==========
 -- These tables store structured, queryable fields extracted from supplier payloads.
@@ -314,3 +332,4 @@ create table if not exists quote_item (
   meta              jsonb,
   created_at        timestamptz not null default now()
 );
+

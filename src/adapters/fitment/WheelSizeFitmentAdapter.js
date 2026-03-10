@@ -32,7 +32,7 @@ class WheelSizeFitmentAdapter {
    * - offsetRangeMm
    * - oemTireSizes
    *
-   * @param {{year:number, make:string, model:string, submodel?:string, trim?:string}} vehicle
+   * @param {{year:number, make:string, model:string, submodel?:string, trim?:string, modification?:string}} vehicle
    */
   async getFitment(vehicle) {
     if (!this.baseUrl) throw new Error('WheelSize fitment provider not configured (WHEEL_SIZE_BASE_URL)');
@@ -44,10 +44,13 @@ class WheelSizeFitmentAdapter {
     const makeSlug = await this._resolveMakeSlug(vehicle.make, year);
     const modelSlug = await this._resolveModelSlug(makeSlug, vehicle.model, year);
 
-    // If trim provided, try to resolve a modification slug for better accuracy.
-    const modificationSlug = vehicle.trim
-      ? await this._resolveModificationSlug({ makeSlug, modelSlug, year, trim: vehicle.trim })
-      : null;
+    // Preferred: if caller already has a Wheel-Size modification slug/id, use it directly.
+    // Otherwise, if trim provided, try to resolve a modification slug for better accuracy.
+    const modificationSlug = vehicle.modification
+      ? String(vehicle.modification)
+      : vehicle.trim
+        ? await this._resolveModificationSlug({ makeSlug, modelSlug, year, trim: vehicle.trim })
+        : null;
 
     // Swagger requires make+model + (year|generation) + (modification|region)
     const payload = await this.client.searchByModel({
@@ -117,6 +120,42 @@ class WheelSizeFitmentAdapter {
 
     // Best-effort fallback.
     return guess;
+  }
+
+  async listTrims({ year, make, model }) {
+    const y = Number(year);
+    if (!Number.isFinite(y)) throw new Error('year_required');
+
+    const makeSlug = await this._resolveMakeSlug(make, y);
+    const modelSlug = await this._resolveModelSlug(makeSlug, model, y);
+
+    const payload = await this.client.modifications({ make: makeSlug, model: modelSlug, year: y });
+    const mods = payload?.data || [];
+    if (!Array.isArray(mods)) return [];
+
+    // Normalize to {modification, trim}
+    const out = mods
+      .map((m) => ({
+        modification: m?.slug || null,
+        trim: m?.trim || m?.name || m?.slug || null,
+        trimLevel: m?.trim_level ?? null,
+        trimScoring: m?.trim_scoring ?? null
+      }))
+      .filter((m) => m.modification && m.trim);
+
+    // De-dupe by modification
+    const seen = new Set();
+    const uniq = [];
+    for (const t of out) {
+      if (seen.has(t.modification)) continue;
+      seen.add(t.modification);
+      uniq.push(t);
+    }
+
+    // Sort for nicer UI: trim_scoring desc, then trim asc
+    uniq.sort((a, b) => (Number(b.trimScoring) || 0) - (Number(a.trimScoring) || 0) || String(a.trim).localeCompare(String(b.trim)));
+
+    return uniq;
   }
 
   async _resolveModificationSlug({ makeSlug, modelSlug, year, trim }) {

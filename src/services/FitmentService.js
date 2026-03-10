@@ -14,12 +14,12 @@ class FitmentService {
    * Get fitment for a vehicle. Uses cache if present, otherwise calls provider.
    * Returns normalized output contract.
    */
-  async getFitmentForVehicle(vehicle) {
+  async getFitmentForVehicle(vehicle, { vehicleModificationId = null, modification = null, trim = null } = {}) {
     // Ensure vehicle row exists (service may be called with an in-memory vehicle object)
     await this._upsertVehicle(vehicle);
 
     // 1) check cache (with TTL)
-    const cached = await this._getCachedFitment(vehicle.id);
+    const cached = await this._getCachedFitment(vehicle.id, vehicleModificationId);
     if (cached && isFresh(cached?.source?.asOf, this.cacheTtlDays)) return cached;
 
     // 2) resolve via provider
@@ -28,18 +28,30 @@ class FitmentService {
       make: vehicle.make,
       model: vehicle.model,
       submodel: vehicle.submodel,
-      trim: vehicle.trim
+      // Keep backward compat: trim string can still resolve a modification slug.
+      trim: trim ?? vehicle.trim,
+      // Preferred: pass explicit modification slug/id (Wheel-Size "modification")
+      modification: modification || null
     });
 
     // 3) persist normalized fitment + source
-    await this._upsertFitment(vehicle.id, fitment, {
+    await this._upsertFitment(vehicle.id, vehicleModificationId, fitment, {
       provider: this.provider.getCapabilities().code,
       sourceRecordTimestamp: fitment?.sourceRecordTimestamp || null,
       confidence: fitment?.confidence ?? null,
       quality: fitment?.quality || null
     });
 
-    return await this._getCachedFitment(vehicle.id);
+    return await this._getCachedFitment(vehicle.id, vehicleModificationId);
+  }
+
+  async listTrims({ year, make, model }) {
+    if (!this.provider?.listTrims) {
+      const err = new Error('trim_lookup_not_supported');
+      err.status = 500;
+      throw err;
+    }
+    return await this.provider.listTrims({ year, make, model });
   }
 
   /**
@@ -74,29 +86,37 @@ class FitmentService {
     });
   }
 
-  async _getCachedFitment(vehicleId) {
+  async _getCachedFitment(vehicleId, vehicleModificationId = null) {
     const q = {
       text: `
-        select vf.id as vehicle_fitment_id, vf.vehicle_id, vf.bolt_pattern, vf.center_bore_mm,
+        select vf.id as vehicle_fitment_id, vf.vehicle_id, vf.vehicle_modification_id,
+               vf.bolt_pattern, vf.center_bore_mm,
                vf.min_offset_mm, vf.max_offset_mm, vf.min_wheel_dia_in, vf.max_wheel_dia_in,
                vf.min_wheel_w_in, vf.max_wheel_w_in,
                vfs.provider, vfs.as_of as source_as_of, vfs.source_record_timestamp, vfs.confidence as source_confidence, vfs.quality
         from vehicle_fitment vf
         left join vehicle_fitment_source vfs on vfs.vehicle_fitment_id = vf.id
         where vf.vehicle_id = $1::uuid
+          and vf.vehicle_modification_id is not distinct from $2::uuid
         limit 1
       `,
-      values: [vehicleId]
+      values: [vehicleId, vehicleModificationId]
     };
     const { rows } = await this.db.query(q);
     if (!rows[0]) return null;
 
     const row = rows[0];
 
-    // OEM tire sizes
+    // OEM tire sizes (scoped to modification when available)
     const { rows: oemRows } = await this.db.query({
-      text: `select size from vehicle_oem_tire_size where vehicle_id = $1::uuid order by size asc`,
-      values: [vehicleId]
+      text: `
+        select size
+        from vehicle_oem_tire_size
+        where vehicle_id = $1::uuid
+          and vehicle_modification_id is not distinct from $2::uuid
+        order by size asc
+      `,
+      values: [vehicleId, vehicleModificationId]
     });
 
     let notes = {};
@@ -108,6 +128,7 @@ class FitmentService {
 
     return {
       vehicleId: row.vehicle_id,
+      vehicleModificationId: row.vehicle_modification_id || null,
       fitment: {
         boltPattern: row.bolt_pattern,
         centerBoreMm: row.center_bore_mm != null ? Number(row.center_bore_mm) : null,
@@ -136,28 +157,30 @@ class FitmentService {
     };
   }
 
-  async _upsertFitment(vehicleId, fitment, source) {
+  async _upsertFitment(vehicleId, vehicleModificationId, fitment, source) {
     // NOTE: this assumes the provider returns normalized fields. If not, normalize here.
     // This is still safe: package engine only sees what we persist.
 
-    // Upsert vehicle_fitment (unique vehicle_id)
+    // Upsert vehicle_fitment (unique vehicle_id + vehicle_modification_id)
     const fitmentId = randomUUID();
     await this.db.query({
       text: `
         insert into vehicle_fitment (
-          id, vehicle_id, bolt_pattern, center_bore_mm,
+          id, vehicle_id, vehicle_modification_id,
+          bolt_pattern, center_bore_mm,
           min_offset_mm, max_offset_mm,
           min_wheel_dia_in, max_wheel_dia_in,
           min_wheel_w_in, max_wheel_w_in,
           notes
         ) values (
-          $1::uuid, $2::uuid, $3, $4,
-          $5, $6,
-          $7, $8,
-          $9, $10,
-          $11
+          $1::uuid, $2::uuid, $3::uuid,
+          $4, $5,
+          $6, $7,
+          $8, $9,
+          $10, $11,
+          $12
         )
-        on conflict (vehicle_id) do update set
+        on conflict (vehicle_id, vehicle_modification_id) do update set
           bolt_pattern = excluded.bolt_pattern,
           center_bore_mm = excluded.center_bore_mm,
           min_offset_mm = excluded.min_offset_mm,
@@ -165,12 +188,14 @@ class FitmentService {
           min_wheel_dia_in = excluded.min_wheel_dia_in,
           max_wheel_dia_in = excluded.max_wheel_dia_in,
           min_wheel_w_in = excluded.min_wheel_w_in,
-          max_wheel_w_in = excluded.max_wheel_w_in
+          max_wheel_w_in = excluded.max_wheel_w_in,
+          notes = excluded.notes
         returning id
       `,
       values: [
         fitmentId,
         vehicleId,
+        vehicleModificationId,
         fitment.boltPattern || null,
         fitment.centerBoreMm ?? null,
         fitment.offsetRangeMm?.[0] ?? null,
@@ -189,8 +214,8 @@ class FitmentService {
 
     // Find vehicle_fitment id for source insert
     const { rows } = await this.db.query({
-      text: `select id from vehicle_fitment where vehicle_id = $1::uuid`,
-      values: [vehicleId]
+      text: `select id from vehicle_fitment where vehicle_id = $1::uuid and vehicle_modification_id is not distinct from $2::uuid`,
+      values: [vehicleId, vehicleModificationId]
     });
     const vfId = rows[0]?.id;
     if (!vfId) return;
@@ -211,19 +236,26 @@ class FitmentService {
       values: [randomUUID(), vfId, source.provider, source.sourceRecordTimestamp, source.confidence, source.quality]
     });
 
-    // OEM tire sizes (refresh list)
+    // OEM tire sizes (refresh list), scoped to modification
     const sizes = Array.from(new Set((fitment?.oemTireSizes || [])
       .map(normalizeOemTireSize)
       .filter(Boolean)));
     if (sizes.length) {
       await this.db.query({
-        text: `delete from vehicle_oem_tire_size where vehicle_id = $1::uuid`,
-        values: [vehicleId]
+        text: `
+          delete from vehicle_oem_tire_size
+          where vehicle_id = $1::uuid
+            and vehicle_modification_id is not distinct from $2::uuid
+        `,
+        values: [vehicleId, vehicleModificationId]
       });
       for (const s of sizes) {
         await this.db.query({
-          text: `insert into vehicle_oem_tire_size (id, vehicle_id, size, position) values ($1::uuid, $2::uuid, $3, $4)`,
-          values: [randomUUID(), vehicleId, s, 'all']
+          text: `
+            insert into vehicle_oem_tire_size (id, vehicle_id, vehicle_modification_id, size, position)
+            values ($1::uuid, $2::uuid, $3::uuid, $4, $5)
+          `,
+          values: [randomUUID(), vehicleId, vehicleModificationId, s, 'all']
         });
       }
     }

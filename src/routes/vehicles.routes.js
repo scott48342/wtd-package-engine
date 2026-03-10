@@ -4,11 +4,14 @@ function vehiclesRouter({ vehicleService, fitmentService, wheelService, wheelSiz
   const r = express.Router();
 
   // Vehicle lookup (Y/M/M) via Wheel-Size, with DB persistence + cache.
+  // Optional: pass `modification` (Wheel-Size modification slug/id) for trim-specific fitment.
   r.get('/search', async (req, res, next) => {
     try {
       const year = req.query.year ? Number(req.query.year) : null;
       const make = req.query.make ? String(req.query.make).trim() : null;
       const model = req.query.model ? String(req.query.model).trim() : null;
+      const modification = req.query.modification ? String(req.query.modification).trim() : null;
+      const trim = req.query.trim ? String(req.query.trim).trim() : null;
 
       if (!year || !Number.isFinite(year)) return res.status(400).json({ error: 'year_required' });
       if (!make) return res.status(400).json({ error: 'make_required' });
@@ -17,17 +20,32 @@ function vehiclesRouter({ vehicleService, fitmentService, wheelService, wheelSiz
       // Resolve/create a vehicle identity for this Y/M/M.
       const vehicle = await vehicleService.getOrCreateVehicle({ year, make, model });
 
-      // Fetch fitment (cached + persisted).
-      const data = await fitmentService.getFitmentForVehicle(vehicle);
+      // If a modification is provided, bind it to this vehicle.
+      const vehicleModification = modification
+        ? await vehicleService.getOrCreateVehicleModification({ vehicleId: vehicle.id, modification, trim })
+        : null;
+
+      // Fetch fitment (cached + persisted), scoped to modification when present.
+      const data = await fitmentService.getFitmentForVehicle(vehicle, {
+        vehicleModificationId: vehicleModification?.id || null,
+        modification: modification || null,
+        trim: trim || null
+      });
 
       const bp = data?.fitment?.boltPattern || null;
       const lugCount = bp ? parseLugCount(bp) : null;
 
       res.json({
         vehicle: { id: vehicle.id, year: vehicle.year, make: vehicle.make, model: vehicle.model },
+        trim: vehicleModification?.trim || trim || null,
+        modification: vehicleModification?.modification || modification || null,
+        vehicleModificationId: vehicleModification?.id || null,
         boltPattern: bp,
         lugCount,
         centerBoreMm: data?.fitment?.centerBoreMm ?? null,
+        wheelDiameterRangeIn: data?.fitment?.wheelDiameterRangeIn || [null, null],
+        wheelWidthRangeIn: data?.fitment?.wheelWidthRangeIn || [null, null],
+        offsetRangeMm: data?.fitment?.offsetRangeMm || [null, null],
         wheelSizes: data?.fitment?.wheelSizes || [],
         tireSizes: data?.fitment?.oemTireSizes || []
       });
@@ -50,6 +68,25 @@ function vehiclesRouter({ vehicleService, fitmentService, wheelService, wheelSiz
           .sort((a, b) => a - b)
         : [];
       res.json({ results: years });
+    } catch (e) {
+      next(e);
+    }
+  });
+
+  // Trims/modifications (Wheel-Size)
+  // GET /v1/vehicles/trims?year=2020&make=Audi&model=S5
+  r.get('/trims', async (req, res, next) => {
+    try {
+      const year = req.query.year ? Number(req.query.year) : null;
+      const make = req.query.make ? String(req.query.make).trim() : null;
+      const model = req.query.model ? String(req.query.model).trim() : null;
+
+      if (!year || !Number.isFinite(year)) return res.status(400).json({ error: 'year_required' });
+      if (!make) return res.status(400).json({ error: 'make_required' });
+      if (!model) return res.status(400).json({ error: 'model_required' });
+
+      const results = await fitmentService.listTrims({ year, make, model });
+      res.json({ results });
     } catch (e) {
       next(e);
     }

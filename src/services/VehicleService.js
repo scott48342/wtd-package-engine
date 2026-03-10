@@ -32,6 +32,32 @@ class VehicleService {
     return rows[0] || null;
   }
 
+  async getOrCreateVehicleModification({ vehicleId, modification, trim }) {
+    if (!vehicleId) throw new Error('vehicleId_required');
+    if (!modification) throw new Error('modification_required');
+
+    const { rows } = await this.db.query({
+      text: `
+        select id, vehicle_id, modification, trim
+        from vehicle_modification
+        where vehicle_id = $1::uuid
+          and modification = $2
+        limit 1
+      `,
+      values: [vehicleId, String(modification)]
+    });
+
+    if (rows[0]) return rows[0];
+
+    const id = require('crypto').randomUUID();
+    await this.db.query({
+      text: `insert into vehicle_modification (id, vehicle_id, modification, trim) values ($1::uuid, $2::uuid, $3, $4)`,
+      values: [id, vehicleId, String(modification), trim ? String(trim) : null]
+    });
+
+    return { id, vehicle_id: vehicleId, modification: String(modification), trim: trim ? String(trim) : null };
+  }
+
   /**
    * Find or create a vehicle identity for a year/make/model lookup.
    * Uses a best-effort match on (year, make, model) with null submodel/trim.

@@ -3,8 +3,8 @@ const { randomUUID } = require('crypto');
 class WheelService {
   
 
-  async listCompatibleWheels({ vehicleId, page = 1, pageSize = 20, targetDiameter = null }) {
-    // 1) Load vehicle fitment
+  async listCompatibleWheels({ vehicleId, vehicleModificationId = null, page = 1, pageSize = 20, targetDiameter = null }) {
+    // 1) Load vehicle fitment (scoped to modification when provided)
     const { rows } = await this.db.query({
       text: `
         select bolt_pattern, center_bore_mm,
@@ -13,9 +13,10 @@ class WheelService {
                min_offset_mm, max_offset_mm
         from vehicle_fitment
         where vehicle_id = $1::uuid
+          and vehicle_modification_id is not distinct from $2::uuid
         limit 1
       `,
-      values: [vehicleId]
+      values: [vehicleId, vehicleModificationId]
     });
 
     const f = rows[0];
