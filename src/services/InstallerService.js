@@ -2,11 +2,19 @@ const axios = require('axios');
 
 class InstallerService {
   /**
-   * @param {{db: import('pg').Pool, cacheTtlDays?:number}} deps
+   * @param {{
+   *   db: import('pg').Pool,
+   *   cacheTtlDays?:number,
+   *   googlePlacesApiKey?: string,
+   *   googlePlacesBaseUrl?: string
+   * }} deps
    */
-  constructor({ db, cacheTtlDays = 30 }) {
+  constructor({ db, cacheTtlDays = 30, googlePlacesApiKey, googlePlacesBaseUrl = 'https://maps.googleapis.com/maps/api' }) {
     this.db = db;
     this.cacheTtlDays = cacheTtlDays;
+    this.googlePlacesApiKey = googlePlacesApiKey || null;
+    this.googlePlacesBaseUrl = googlePlacesBaseUrl;
+
     this.http = axios.create({ timeout: 15_000, headers: { Accept: 'application/json' } });
   }
 
@@ -123,6 +131,55 @@ class InstallerService {
     return { zip: z, lat: fresh.lat, lon: fresh.lon };
   }
 
+  async _googlePlacesInstallerLookupByZip(zip) {
+    if (!this.googlePlacesApiKey) return null;
+
+    // Places API doesn't directly geocode ZIPs, so we still use our ZIP→lat/lon resolver.
+    const origin = await this.getZipLatLon(zip);
+
+    // Use Nearby Search with a broad keyword. You can tune this later (types, rankby, radius, etc.).
+    const url = `${this.googlePlacesBaseUrl}/place/nearbysearch/json`;
+    const params = {
+      key: this.googlePlacesApiKey,
+      location: `${origin.lat},${origin.lon}`,
+      radius: 50_000, // meters (~31mi)
+      keyword: 'tire installer'
+    };
+
+    const res = await this.http.get(url, { params });
+    const data = res.data || {};
+    if (data.status && data.status !== 'OK') {
+      // e.g. REQUEST_DENIED, OVER_QUERY_LIMIT, ZERO_RESULTS
+      return { installer: null, _googleStatus: data.status, _googleError: data.error_message || null };
+    }
+
+    const first = Array.isArray(data.results) ? data.results[0] : null;
+    if (!first) return { installer: null };
+
+    const lat = first.geometry?.location?.lat;
+    const lon = first.geometry?.location?.lng;
+    const d = (Number.isFinite(lat) && Number.isFinite(lon))
+      ? haversineMiles(origin.lat, origin.lon, Number(lat), Number(lon))
+      : null;
+
+    return {
+      installer: {
+        id: null,
+        name: first.name || null,
+        address1: first.vicinity || first.formatted_address || null,
+        address2: null,
+        city: null,
+        state: null,
+        zip: zip,
+        phone: null,
+        website: null,
+        distanceMiles: d != null ? round(d, 2) : null,
+        source: 'google_places',
+        placeId: first.place_id || null
+      }
+    };
+  }
+
   async lookupBestInstallerByZip(zip) {
     await this._ensureTables();
 
@@ -153,7 +210,11 @@ class InstallerService {
       })
       .sort((a, b) => a.distanceMiles - b.distanceMiles)[0];
 
-    if (!best) return { installer: null };
+    if (!best) {
+      // Fallback: if we have a Google Places key, try to find a nearby installer.
+      const google = await this._googlePlacesInstallerLookupByZip(z);
+      return google || { installer: null };
+    }
 
     return {
       installer: {
@@ -166,7 +227,8 @@ class InstallerService {
         zip: best.zip,
         phone: best.phone,
         website: best.website,
-        distanceMiles: round(best.distanceMiles, 2)
+        distanceMiles: round(best.distanceMiles, 2),
+        source: 'db'
       }
     };
   }

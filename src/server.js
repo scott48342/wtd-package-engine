@@ -78,7 +78,9 @@ async function main() {
 
   const installerService = new InstallerService({
     db,
-    cacheTtlDays: config.FITMENT_CACHE_TTL_DAYS
+    cacheTtlDays: config.FITMENT_CACHE_TTL_DAYS,
+    googlePlacesApiKey: config.GOOGLE_PLACES_API_KEY,
+    googlePlacesBaseUrl: config.GOOGLE_PLACES_BASE_URL
   });
 
   const app = createApp({

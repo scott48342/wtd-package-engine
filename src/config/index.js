@@ -33,7 +33,11 @@ const envSchema = z.object({
   // TireConnect scrape adapter (interim)
   TIRECONNECT_WIDGET_ID: z.string().optional(),
   TIRECONNECT_LOCATION_ID: z.string().optional(),
-  TIRECONNECT_BASE_URL: z.string().optional()
+  TIRECONNECT_BASE_URL: z.string().optional(),
+
+  // Google Places (installer lookup)
+  GOOGLE_PLACES_API_KEY: z.string().optional(),
+  GOOGLE_PLACES_BASE_URL: z.string().default('https://maps.googleapis.com/maps/api')
 });
 
 function loadConfig(processEnv = process.env) {
