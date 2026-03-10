@@ -93,6 +93,18 @@ class WheelProsAdapter {
       ...query
     };
 
+    // WheelPros tire search does NOT accept a combined size string like "215/55R18".
+    // If caller passes size=..., parse it and convert into width/aspectRatio/wheelDiameter.
+    if (params.size && (!params.width || !params.aspectRatio || !params.wheelDiameter)) {
+      const parsed = parseTireSize(String(params.size));
+      if (parsed) {
+        if (params.width == null) params.width = Number(parsed.width);
+        if (params.aspectRatio == null) params.aspectRatio = Number(parsed.aspectRatio);
+        if (params.wheelDiameter == null) params.wheelDiameter = Number(parsed.wheelDiameter);
+      }
+      delete params.size;
+    }
+
     // Remove undefined/empty
     for (const k of Object.keys(params)) {
       if (params[k] === undefined || params[k] === '') delete params[k];
@@ -231,6 +243,15 @@ class WheelProsAdapter {
   }
 }
 
+
+function parseTireSize(size) {
+  const s = String(size || '').trim().toUpperCase().replace(/\s+/g, '');
+  // Accept: 215/55R18, 215/55ZR18 (treat ZR as R)
+  const cleaned = s.replace('ZR', 'R');
+  const match = cleaned.match(/(\d+)\/(\d+)R(\d+)/);
+  if (!match) return null;
+  return { width: match[1], aspectRatio: match[2], wheelDiameter: match[3] };
+}
 
 function parseMaybeNumber(v) {
   if (v == null) return null;
