@@ -25,11 +25,21 @@ class PackageEngineService {
     const fitment = await this.fitmentService.getFitmentForVehicle(vehicle, { vehicleModificationId });
     const oem = (fitment?.fitment?.oemTireSizes || []).map(normalizeTireSize).filter(Boolean);
 
-    const baselineTireSize = oem[0] || null;
+    const targetDia = Number(targetDiameter);
+
+    // Baseline selection (important):
+    // If Wheel-Size provides an OEM tire size that already matches the requested target diameter,
+    // prefer that as the baseline (so "20-inch" returns the known OE 20-inch size first).
+    // Otherwise, fall back to the first OEM size.
+    const baselineTireSize = pickBaselineTireSizeForDiameter({
+      oemSizes: oem,
+      targetWheelDiameterIn: targetDia,
+      tireSizeService: this.tireSizeService
+    });
+
     const baselineParsed = baselineTireSize ? this.tireSizeService.parseSize(baselineTireSize) : null;
     const baselineGeom = baselineParsed ? this.tireSizeService.computeGeometry(baselineParsed) : null;
 
-    const targetDia = Number(targetDiameter);
     if (!Number.isFinite(targetDia)) {
       const err = new Error('targetDiameter_required');
       err.status = 400;
@@ -180,6 +190,28 @@ class PackageEngineService {
       recommendations: recs
     };
   }
+}
+
+function pickBaselineTireSizeForDiameter({ oemSizes = [], targetWheelDiameterIn, tireSizeService }) {
+  const sizes = Array.isArray(oemSizes) ? oemSizes.filter(Boolean) : [];
+  if (!sizes.length) return null;
+
+  const td = Number(targetWheelDiameterIn);
+  if (Number.isFinite(td) && tireSizeService?.parseSize) {
+    // Prefer an OEM size that already matches the requested wheel diameter.
+    const matching = sizes.filter((s) => {
+      const parsed = tireSizeService.parseSize(s);
+      return parsed && Number(parsed.wheelDiameterIn) === td;
+    });
+    if (matching.length) {
+      // If there are multiple, prefer the first stable-sorted.
+      matching.sort();
+      return matching[0];
+    }
+  }
+
+  // Fallback: first OEM size.
+  return sizes[0];
 }
 
 function normalizeTireSize(s) {
