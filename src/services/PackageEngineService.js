@@ -77,6 +77,51 @@ class PackageEngineService {
     };
   }
 
+  async plusSizeBundles({
+    vehicleId,
+    vehicleModificationId = null,
+    fitmentProfile = 'stock',
+    targetDiameter,
+    tolerancePct = 3,
+    maxTireWidthDelta = 20,
+    wheelPageSize = 20,
+    tirePageSize = 10
+  }) {
+    const base = await this.plusSize({
+      vehicleId,
+      vehicleModificationId,
+      fitmentProfile,
+      targetDiameter,
+      tolerancePct,
+      maxTireWidthDelta,
+      wheelPageSize
+    });
+
+    // Pick suggested tire size:
+    // - Prefer baselineTireSize (often the OE size for target diameter)
+    // - Fall back to computed recommended plus-size
+    const suggestedTireSize = base.baselineTireSize || base.recommendedTireSizes?.[0]?.size || null;
+
+    const tires = suggestedTireSize
+      ? await this.wheelService.searchTires({ size: suggestedTireSize, page: 1, pageSize: tirePageSize })
+      : { results: [], totalCount: 0, page: 1, pageSize: tirePageSize };
+
+    const bestTire = Array.isArray(tires?.results) && tires.results.length ? tires.results[0] : null;
+
+    const bundles = (base?.wheels?.results || []).map((wheel) => ({
+      wheel,
+      tire: bestTire,
+      tireSize: suggestedTireSize
+    }));
+
+    return {
+      ...base,
+      suggestedTireSize,
+      tires,
+      bundles
+    };
+  }
+
   async recommend({ vehicleId, preferences }) {
     const vehicle = await this.vehicleService.getVehicleById(vehicleId);
     if (!vehicle) {
