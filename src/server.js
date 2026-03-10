@@ -1,5 +1,7 @@
 require('dotenv').config();
 
+const cors = require("cors");
+
 const { loadConfig } = require('./config');
 const { createPool } = require('./db/pool');
 const { createApp } = require('./app');
@@ -23,11 +25,12 @@ async function main() {
 
   const vehicleService = new VehicleService({ db });
 
-  // Fitment provider (MVP: Wheel-Size API)
+  // Fitment provider (Wheel-Size API)
   const fitmentProvider = new WheelSizeFitmentAdapter({
     baseUrl: config.WHEEL_SIZE_BASE_URL,
     apiKey: config.WHEEL_SIZE_API_KEY
   });
+
   const fitmentService = new FitmentService({
     db,
     provider: fitmentProvider,
@@ -38,10 +41,11 @@ async function main() {
     db,
     baseUrl: config.WHEEL_SIZE_BASE_URL,
     apiKey: config.WHEEL_SIZE_API_KEY,
+    region: config.WHEEL_SIZE_REGION,
     cacheTtlDays: config.FITMENT_CACHE_TTL_DAYS
   });
 
-  // Wheel supplier (MVP: Wheel Pros)
+  // Wheel supplier (WheelPros)
   const wheelAdapter = new WheelProsAdapter({
     authBaseUrl: config.WHEELPROS_AUTH_BASE_URL,
     productsBaseUrl: config.WHEELPROS_PRODUCTS_BASE_URL,
@@ -52,21 +56,30 @@ async function main() {
     customer: config.WHEELPROS_CUSTOMER,
     currencyCode: config.WHEELPROS_CURRENCY
   });
+
   const tireSizeService = new TireSizeService();
 
-  const wheelService = new WheelService({ db, wheelAdapter, tireSizeService });
+  const wheelService = new WheelService({
+    db,
+    wheelAdapter,
+    tireSizeService
+  });
 
-  // Tire supplier (MVP: TireConnect scrape; persists into structured tables)
+  // Tire supplier (TireConnect scrape)
   const tireAdapter = (config.TIRECONNECT_WIDGET_ID && config.TIRECONNECT_LOCATION_ID)
     ? new TireConnectScrapeAdapter({
-      widgetId: config.TIRECONNECT_WIDGET_ID,
-      locationId: config.TIRECONNECT_LOCATION_ID,
-      baseUrl: config.TIRECONNECT_BASE_URL,
-      headless: true
-    })
+        widgetId: config.TIRECONNECT_WIDGET_ID,
+        locationId: config.TIRECONNECT_LOCATION_ID,
+        baseUrl: config.TIRECONNECT_BASE_URL,
+        headless: true
+      })
     : null;
 
-  const tireService = new TireService({ db, tireAdapter, tireSizeService });
+  const tireService = new TireService({
+    db,
+    tireAdapter,
+    tireSizeService
+  });
 
   const packageEngineService = new PackageEngineService({
     vehicleService,
@@ -85,8 +98,19 @@ async function main() {
 
   const app = createApp({
     config,
-    services: { vehicleService, fitmentService, wheelService, wheelSizeCatalogService, tireService, packageEngineService, installerService }
+    services: {
+      vehicleService,
+      fitmentService,
+      wheelService,
+      wheelSizeCatalogService,
+      tireService,
+      packageEngineService,
+      installerService
+    }
   });
+
+  // Enable CORS for React sandbox
+  app.use(cors());
 
   app.listen(config.PORT, () => {
     console.log(`WTD package engine listening on http://127.0.0.1:${config.PORT}`);

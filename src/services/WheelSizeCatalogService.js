@@ -2,11 +2,12 @@ const { WheelSizeClient } = require('../adapters/fitment/wheelSizeClient');
 
 class WheelSizeCatalogService {
   /**
-   * @param {{db: import('pg').Pool, baseUrl: string, apiKey: string, cacheTtlDays: number}} deps
+   * @param {{db: import('pg').Pool, baseUrl: string, apiKey: string, cacheTtlDays: number, region?: string}} deps
    */
-  constructor({ db, baseUrl, apiKey, cacheTtlDays = 7 }) {
+  constructor({ db, baseUrl, apiKey, cacheTtlDays = 7, region = 'usdm' }) {
     this.db = db;
     this.cacheTtlDays = cacheTtlDays;
+    this.region = region;
     this.client = new WheelSizeClient({ baseUrl, apiKey });
   }
 
@@ -64,22 +65,24 @@ class WheelSizeCatalogService {
     return payload;
   }
 
-  async listMakes({ year }) {
-    const key = `wheelsize:makes:${year}`;
+  async listMakes({ year, region } = {}) {
+    const reg = region || this.region;
+    const key = `wheelsize:makes:${year}:${reg}`;
     const cached = await this._get(key);
     if (cached && this._isFresh(cached.as_of)) return cached.payload;
 
-    const payload = await this.client.makes({ year });
+    const payload = await this.client.makes({ year, region: reg });
     await this._set(key, payload);
     return payload;
   }
 
-  async listModels({ year, make }) {
-    const key = `wheelsize:models:${year}:${String(make || '').toLowerCase()}`;
+  async listModels({ year, make, region } = {}) {
+    const reg = region || this.region;
+    const key = `wheelsize:models:${year}:${String(make || '').toLowerCase()}:${reg}`;
     const cached = await this._get(key);
     if (cached && this._isFresh(cached.as_of)) return cached.payload;
 
-    const payload = await this.client.models({ year, make });
+    const payload = await this.client.models({ year, make, region: reg });
     await this._set(key, payload);
     return payload;
   }

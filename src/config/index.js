@@ -20,6 +20,8 @@ const envSchema = z.object({
   // Wheel-Size (fitment)
   WHEEL_SIZE_BASE_URL: z.string().optional(),
   WHEEL_SIZE_API_KEY: z.string().optional(),
+  // Catalog/fitment region (Wheel-Size uses values like: usdm, eudm, jdm)
+  WHEEL_SIZE_REGION: z.string().default('usdm'),
 
   // Backward-compatible aliases
   WHEELSIZE_BASE_URL: z.string().optional(),
