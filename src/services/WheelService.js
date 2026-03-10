@@ -3,7 +3,7 @@ const { randomUUID } = require('crypto');
 class WheelService {
   
 
-  async listCompatibleWheels({ vehicleId, vehicleModificationId = null, page = 1, pageSize = 20, targetDiameter = null }) {
+  async listCompatibleWheels({ vehicleId, vehicleModificationId = null, fitmentProfile = 'stock', page = 1, pageSize = 20, targetDiameter = null }) {
     // 1) Load vehicle fitment (scoped to modification when provided)
     const { rows } = await this.db.query({
       text: `
@@ -43,8 +43,20 @@ class WheelService {
     const offMax = f.max_offset_mm != null ? Number(f.max_offset_mm) : null;
 
     // Compatibility tolerances
-    const widthTol = 1; // ±1 inch
-    const offsetTol = 10; // ±10 mm
+    // fitmentProfile:
+    // - stock: keep close to OEM
+    // - mild: allow a bit more flexibility
+    // - aggressive: common leveled/lifted truck offsets
+    const profile = String(fitmentProfile || 'stock').toLowerCase();
+    const tolByProfile = {
+      stock: { widthTol: 1, offsetTol: 10 },
+      mild: { widthTol: 1.5, offsetTol: 20 },
+      aggressive: { widthTol: 2, offsetTol: 35 }
+    };
+    const chosen = tolByProfile[profile] || tolByProfile.stock;
+
+    const widthTol = chosen.widthTol; // inches
+    const offsetTol = chosen.offsetTol; // mm
 
     const limit = Math.max(1, Math.min(100, Number(pageSize) || 20));
     const safePage = Math.max(1, Number(page) || 1);
@@ -101,7 +113,7 @@ class WheelService {
       if (widthMin != null && spec.widthIn != null && spec.widthIn < (widthMin - widthTol)) continue;
       if (widthMax != null && spec.widthIn != null && spec.widthIn > (widthMax + widthTol)) continue;
 
-      // Offset range filter (±10)
+      // Offset range filter
       if (offMin != null && spec.offsetMm != null && spec.offsetMm < (offMin - offsetTol)) continue;
       if (offMax != null && spec.offsetMm != null && spec.offsetMm > (offMax + offsetTol)) continue;
 

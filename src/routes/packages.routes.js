@@ -14,6 +14,7 @@ function packagesRouter({ packageEngineService }) {
       const vehicleId = req.query.vehicleId ? String(req.query.vehicleId) : null;
       const vehicleModificationId = req.query.vehicleModificationId ? String(req.query.vehicleModificationId) : null;
       const targetDiameter = req.query.targetDiameter != null ? Number(req.query.targetDiameter) : null;
+      const fitmentProfile = req.query.fitmentProfile ? String(req.query.fitmentProfile) : 'stock';
 
       if (!vehicleId) return res.status(400).json({ error: 'vehicleId_required' });
       if (!targetDiameter || !Number.isFinite(targetDiameter)) return res.status(400).json({ error: 'targetDiameter_required' });
@@ -25,6 +26,7 @@ function packagesRouter({ packageEngineService }) {
       const out = await packageEngineService.plusSize({
         vehicleId,
         vehicleModificationId,
+        fitmentProfile,
         targetDiameter,
         tolerancePct,
         maxTireWidthDelta,

@@ -14,7 +14,7 @@ class PackageEngineService {
    * Generate package recommendations.
    * MVP: uses wheel search + fitment constraints; tire integration can be added later.
    */
-  async plusSize({ vehicleId, vehicleModificationId = null, targetDiameter, tolerancePct = 3, maxTireWidthDelta = 20, wheelPageSize = 20 }) {
+  async plusSize({ vehicleId, vehicleModificationId = null, fitmentProfile = 'stock', targetDiameter, tolerancePct = 3, maxTireWidthDelta = 20, wheelPageSize = 20 }) {
     const vehicle = await this.vehicleService.getVehicleById(vehicleId);
     if (!vehicle) {
       const err = new Error('vehicle_not_found');
@@ -49,6 +49,7 @@ class PackageEngineService {
     const wheelData = await this.wheelService.listCompatibleWheels({
       vehicleId,
       vehicleModificationId,
+      fitmentProfile,
       page: 1,
       pageSize: wheelPageSize,
       targetDiameter: targetDia
