@@ -1,0 +1,12 @@
+-- Fitment providers notes (non-executable)
+--
+-- Providers:
+-- - WHEEL_SIZE_API (primary MVP)
+-- - SELF_MANAGED_DATASET (secondary/bootstrap)
+--
+-- You may later want a cache table like:
+-- vehicle_fitment_snapshot(vehicle_id, provider, fitment_json, as_of)
+-- so you can:
+-- - avoid repeated API calls
+-- - record provenance for recommendations
+-- - allow manual overrides to take precedence

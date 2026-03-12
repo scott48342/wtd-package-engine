@@ -1,0 +1,111 @@
+{
+  "files": [
+    "adapters/fitment/wheelSizeClient.js",
+    "adapters/fitment/WheelSizeFitmentAdapter.js",
+    "adapters/interfaces.js",
+    "adapters/tires/MockTireAdapter.js",
+    "adapters/tires/TireConnectScrapeAdapter.js",
+    "adapters/wheelpros/WheelProsAdapter.js",
+    "adapters/wheelpros/wheelprosClient.js",
+    "app.js",
+    "config/index.js",
+    "db/pool.js",
+    "models/identity.js",
+    "routes/packages.routes.js",
+    "routes/vehicles.routes.js",
+    "routes/wheels.routes.js",
+    "scripts/depmap.js",
+    "scripts/print-schema.js",
+    "scripts/test-tireconnect.js",
+    "scripts/test-wheelsize-fitment.js",
+    "server.js",
+    "services/FitmentService.js",
+    "services/PackageEngineService.js",
+    "services/TireService.js",
+    "services/TireSizeService.js",
+    "services/VehicleService.js",
+    "services/WheelService.js"
+  ],
+  "edges": [
+    {
+      "from": "adapters/fitment/WheelSizeFitmentAdapter.js",
+      "req": "./wheelSizeClient"
+    },
+    {
+      "from": "adapters/wheelpros/WheelProsAdapter.js",
+      "req": "./wheelprosClient"
+    },
+    {
+      "from": "app.js",
+      "req": "./routes/vehicles.routes"
+    },
+    {
+      "from": "app.js",
+      "req": "./routes/wheels.routes"
+    },
+    {
+      "from": "app.js",
+      "req": "./routes/packages.routes"
+    },
+    {
+      "from": "scripts/test-tireconnect.js",
+      "req": "../adapters/tires/TireConnectScrapeAdapter"
+    },
+    {
+      "from": "scripts/test-wheelsize-fitment.js",
+      "req": "../config"
+    },
+    {
+      "from": "scripts/test-wheelsize-fitment.js",
+      "req": "../adapters/fitment/WheelSizeFitmentAdapter"
+    },
+    {
+      "from": "server.js",
+      "req": "./config"
+    },
+    {
+      "from": "server.js",
+      "req": "./db/pool"
+    },
+    {
+      "from": "server.js",
+      "req": "./app"
+    },
+    {
+      "from": "server.js",
+      "req": "./services/VehicleService"
+    },
+    {
+      "from": "server.js",
+      "req": "./services/FitmentService"
+    },
+    {
+      "from": "server.js",
+      "req": "./services/WheelService"
+    },
+    {
+      "from": "server.js",
+      "req": "./services/TireService"
+    },
+    {
+      "from": "server.js",
+      "req": "./services/PackageEngineService"
+    },
+    {
+      "from": "server.js",
+      "req": "./services/TireSizeService"
+    },
+    {
+      "from": "server.js",
+      "req": "./adapters/wheelpros/WheelProsAdapter"
+    },
+    {
+      "from": "server.js",
+      "req": "./adapters/fitment/WheelSizeFitmentAdapter"
+    },
+    {
+      "from": "server.js",
+      "req": "./adapters/tires/TireConnectScrapeAdapter"
+    }
+  ]
+}

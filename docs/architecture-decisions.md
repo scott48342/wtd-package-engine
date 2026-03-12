@@ -3,6 +3,7 @@
 ## ADR-001: Adapter-based supplier/provider integrations
 - **Decision:** Suppliers and fitment providers are integrated via adapters under `src/adapters/*`.
 - **Why:** Keeps `PackageEngineService` and other business logic supplier-agnostic.
+- **Note:** Adapter interfaces are currently **JSDoc/runtime-contract based** (see `src/adapters/interfaces.js`) — not compile-time enforced.
 
 ## ADR-002: Stable internal product identity
 - **Decision:** Use internal `product.id` (UUID) as the stable identity and map supplier SKUs via `supplier_product_map`.

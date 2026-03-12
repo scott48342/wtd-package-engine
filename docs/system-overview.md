@@ -12,7 +12,7 @@
 ## High-level data flow
 
 1. Client selects a **vehicle** (by id)
-2. API fetches **fitment** (Wheel-Size adapter; DB-cached)
+2. API fetches **fitment** (Wheel-Size adapter; DB-cached). Note: fitment lookup may **upsert** a vehicle row to ensure caching has a stable vehicle id.
 3. API fetches **wheel candidates** (WheelPros adapter; persisted into structured tables)
 4. API fetches **tire candidates** (TireConnect scrape adapter; persisted into structured tables)
 5. Package engine compares sizes (via `TireSizeService`) and returns recommendations

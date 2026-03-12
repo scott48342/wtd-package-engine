@@ -1,0 +1,23 @@
+require('dotenv').config();
+const { loadConfig } = require('../config');
+const { WheelSizeFitmentAdapter } = require('../adapters/fitment/WheelSizeFitmentAdapter');
+
+(async () => {
+  const cfg = loadConfig();
+  const a = new WheelSizeFitmentAdapter({
+    baseUrl: cfg.WHEEL_SIZE_BASE_URL,
+    apiKey: cfg.WHEEL_SIZE_API_KEY
+  });
+
+  const fit = await a.getFitment({
+    year: 2020,
+    make: 'Toyota',
+    model: '4Runner',
+    trim: 'SR5'
+  });
+
+  console.log(JSON.stringify(fit, null, 2));
+})().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});
