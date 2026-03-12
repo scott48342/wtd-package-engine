@@ -4,6 +4,7 @@ const cors = require("cors");
 
 const { loadConfig } = require('./config');
 const { createPool } = require('./db/pool');
+const { initSchema } = require('./db/initSchema');
 const { createApp } = require('./app');
 
 const { VehicleService } = require('./services/VehicleService');
@@ -22,6 +23,9 @@ const { TireConnectScrapeAdapter } = require('./adapters/tires/TireConnectScrape
 async function main() {
   const config = loadConfig();
   const db = createPool({ databaseUrl: config.DATABASE_URL });
+
+  // Ensure DB schema exists (Railway Postgres starts empty).
+  await initSchema({ db });
 
   const vehicleService = new VehicleService({ db });
 
