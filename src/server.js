@@ -103,6 +103,7 @@ async function main() {
   const app = createApp({
     config,
     services: {
+      db,
       vehicleService,
       fitmentService,
       wheelService,

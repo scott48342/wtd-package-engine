@@ -156,6 +156,31 @@ create table if not exists vehicle_oem_tire_size (
   created_at        timestamptz not null default now()
 );
 
+-- ========== TIRE ASSET CACHE (images/names) ==========
+-- Lightweight cache populated manually (or via browser-assisted capture).
+create table if not exists tire_asset_cache (
+  id                uuid primary key,
+
+  -- What we searched by
+  tire_size_raw     text,          -- e.g. 2755520 (rawSize)
+
+  -- K&M inventory descriptor (abbreviated)
+  km_description    text,
+
+  -- Canonical / nicer display name (from TireConnect or elsewhere)
+  display_name      text,
+
+  -- Image URL (typically https://wl.tireconnect.ca/uploads/...)
+  image_url         text,
+
+  source            text not null default 'manual',
+
+  created_at        timestamptz not null default now(),
+  updated_at        timestamptz not null default now(),
+
+  unique(km_description)
+);
+
 create index if not exists vehicle_oem_tire_size_mod_idx on vehicle_oem_tire_size(vehicle_modification_id);
 
 -- ========== PRODUCT CACHE (normalized) ==========

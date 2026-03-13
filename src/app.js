@@ -6,6 +6,7 @@ const { wheelsRouter } = require('./routes/wheels.routes');
 const { packagesRouter } = require('./routes/packages.routes');
 const { tiresRouter } = require('./routes/tires.routes');
 const { installersRouter } = require('./routes/installers.routes');
+const { assetsRouter } = require('./routes/assets.routes');
 
 function createApp({ config, services }) {
   const app = express();
@@ -56,6 +57,8 @@ function createApp({ config, services }) {
   app.use('/v1/installers', installersRouter({
     installerService: services.installerService
   }));
+
+  app.use('/v1/assets', assetsRouter({ db: services.db }));
 
   // Error handler
   // eslint-disable-next-line no-unused-vars
