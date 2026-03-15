@@ -53,16 +53,37 @@ class WheelSizeFitmentAdapter {
         : null;
 
     // Swagger requires make+model + (year|generation) + (modification|region)
-    const payload = await this.client.searchByModel({
+    // IMPORTANT: Wheel-Size sometimes omits optional OEM packages when querying by modification.
+    // To avoid losing valid OEM tire sizes (e.g. 275/65R20 on Silverado 2500HD), we merge:
+    //   - region-level fitment (broader OEM/optional packages)
+    //   - modification-level fitment (more precise when present)
+
+    const payloadBase = await this.client.searchByModel({
       make: makeSlug,
       model: modelSlug,
       year,
-      modification: modificationSlug || undefined,
-      region: modificationSlug ? undefined : this.defaultRegion
+      region: this.defaultRegion
     });
 
-    const rows = payload?.data || [];
-    if (!Array.isArray(rows) || rows.length === 0) {
+    const baseRows = payloadBase?.data || [];
+
+    const payloadMod = modificationSlug
+      ? await this.client.searchByModel({
+          make: makeSlug,
+          model: modelSlug,
+          year,
+          modification: modificationSlug
+        })
+      : null;
+
+    const modRows = payloadMod?.data || [];
+
+    const baseFit = Array.isArray(baseRows) && baseRows.length ? normalizeFitmentFromSearchByModel(baseRows) : null;
+    const modFit = Array.isArray(modRows) && modRows.length ? normalizeFitmentFromSearchByModel(modRows) : null;
+
+    const merged = mergeFitments(baseFit, modFit);
+
+    if (!merged) {
       return {
         boltPattern: null,
         centerBoreMm: null,
@@ -75,7 +96,7 @@ class WheelSizeFitmentAdapter {
       };
     }
 
-    return normalizeFitmentFromSearchByModel(rows);
+    return merged;
   }
 
   async _resolveMakeSlug(makeName, year) {
@@ -323,6 +344,44 @@ function range(nums) {
   const finite = nums.filter((n) => Number.isFinite(n));
   if (!finite.length) return [null, null];
   return [Math.min(...finite), Math.max(...finite)];
+}
+
+function mergeFitments(baseFit, modFit) {
+  if (!baseFit && !modFit) return null;
+  if (baseFit && !modFit) return baseFit;
+  if (!baseFit && modFit) return modFit;
+
+  const allTires = Array.from(new Set([...(baseFit.oemTireSizes || []), ...(modFit.oemTireSizes || [])])).sort();
+
+  const wheelSizes = Array.from(
+    new Set([...(baseFit.wheelSizes || []), ...(modFit.wheelSizes || [])].map((w) => JSON.stringify(w)))
+  ).map((s) => JSON.parse(s));
+
+  const allDia = wheelSizes.map((w) => Number(w?.diameterIn)).filter((n) => Number.isFinite(n));
+  const allWid = wheelSizes.map((w) => Number(w?.widthIn)).filter((n) => Number.isFinite(n));
+  const allOff = wheelSizes.map((w) => Number(w?.offsetMm)).filter((n) => Number.isFinite(n));
+
+  const diaRange = allDia.length
+    ? [Math.min(...allDia), Math.max(...allDia)]
+    : (modFit.wheelDiameterRangeIn || baseFit.wheelDiameterRangeIn);
+  const widRange = allWid.length
+    ? [Math.min(...allWid), Math.max(...allWid)]
+    : (modFit.wheelWidthRangeIn || baseFit.wheelWidthRangeIn);
+  const offRange = allOff.length
+    ? [Math.min(...allOff), Math.max(...allOff)]
+    : (modFit.offsetRangeMm || baseFit.offsetRangeMm);
+
+  return {
+    boltPattern: modFit.boltPattern || baseFit.boltPattern,
+    centerBoreMm: modFit.centerBoreMm ?? baseFit.centerBoreMm,
+    wheelDiameterRangeIn: diaRange,
+    wheelWidthRangeIn: widRange,
+    offsetRangeMm: offRange,
+    oemTireSizes: allTires,
+    wheelSizes,
+    confidence: Math.max(Number(baseFit.confidence) || 0, Number(modFit.confidence) || 0),
+    quality: 'merged_region_plus_mod'
+  };
 }
 
 function parseMaybeNumber(v) {
