@@ -13,6 +13,7 @@ function vehiclesRouter({ vehicleService, fitmentService, wheelService, wheelSiz
       const modification = req.query.modification ? String(req.query.modification).trim() : null;
       const trim = req.query.trim ? String(req.query.trim).trim() : null;
       const trimLevel = req.query.trimLevel ? String(req.query.trimLevel).trim() : null;
+      const refresh = req.query.refresh === '1' || req.query.refresh === 'true';
 
       if (!year || !Number.isFinite(year)) return res.status(400).json({ error: 'year_required' });
       if (!make) return res.status(400).json({ error: 'make_required' });
@@ -38,7 +39,8 @@ function vehiclesRouter({ vehicleService, fitmentService, wheelService, wheelSiz
       const data = await fitmentService.getFitmentForVehicle(vehicle, {
         vehicleModificationId: vehicleModification?.id || null,
         modification: effectiveModification || null,
-        trim: effectiveTrim || null
+        trim: effectiveTrim || null,
+        refresh
       });
 
       const bp = data?.fitment?.boltPattern || null;

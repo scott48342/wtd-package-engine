@@ -14,13 +14,15 @@ class FitmentService {
    * Get fitment for a vehicle. Uses cache if present, otherwise calls provider.
    * Returns normalized output contract.
    */
-  async getFitmentForVehicle(vehicle, { vehicleModificationId = null, modification = null, trim = null } = {}) {
+  async getFitmentForVehicle(vehicle, { vehicleModificationId = null, modification = null, trim = null, refresh = false } = {}) {
     // Ensure vehicle row exists (service may be called with an in-memory vehicle object)
     await this._upsertVehicle(vehicle);
 
     // 1) check cache (with TTL)
-    const cached = await this._getCachedFitment(vehicle.id, vehicleModificationId);
-    if (cached && isFresh(cached?.source?.asOf, this.cacheTtlDays)) return cached;
+    if (!refresh) {
+      const cached = await this._getCachedFitment(vehicle.id, vehicleModificationId);
+      if (cached && isFresh(cached?.source?.asOf, this.cacheTtlDays)) return cached;
+    }
 
     // 2) resolve via provider
     const fitment = await this.provider.getFitment({
@@ -249,24 +251,25 @@ class FitmentService {
     const sizes = Array.from(new Set((fitment?.oemTireSizes || [])
       .map(normalizeOemTireSize)
       .filter(Boolean)));
-    if (sizes.length) {
+
+    // Always refresh the list (including delete) so stale sizes don't linger when the provider changes.
+    await this.db.query({
+      text: `
+        delete from vehicle_oem_tire_size
+        where vehicle_id = $1::uuid
+          and vehicle_modification_id is not distinct from $2::uuid
+      `,
+      values: [vehicleId, vehicleModificationId]
+    });
+
+    for (const s of sizes) {
       await this.db.query({
         text: `
-          delete from vehicle_oem_tire_size
-          where vehicle_id = $1::uuid
-            and vehicle_modification_id is not distinct from $2::uuid
+          insert into vehicle_oem_tire_size (id, vehicle_id, vehicle_modification_id, size, position)
+          values ($1::uuid, $2::uuid, $3::uuid, $4, $5)
         `,
-        values: [vehicleId, vehicleModificationId]
+        values: [randomUUID(), vehicleId, vehicleModificationId, s, 'all']
       });
-      for (const s of sizes) {
-        await this.db.query({
-          text: `
-            insert into vehicle_oem_tire_size (id, vehicle_id, vehicle_modification_id, size, position)
-            values ($1::uuid, $2::uuid, $3::uuid, $4, $5)
-          `,
-          values: [randomUUID(), vehicleId, vehicleModificationId, s, 'all']
-        });
-      }
     }
   }
 }
