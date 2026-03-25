@@ -1,0 +1,134 @@
+{
+    "campaign":  "Spring 2026 Launch",
+    "created":  "2026-03-24",
+    "posts":  [
+                  {
+                      "id":  1,
+                      "date":  "2026-03-25",
+                      "time":  "09:30",
+                      "type":  "vehicle",
+                      "copy":  "Your F-150 isn\u0027t just \u0027a truck\u0027 — it\u0027s a specific year, cab, and bed. That\u0027s why we show you tires and wheels that actually fit yours, not generic results.",
+                      "url":  "https://shop.warehousetiredirect.com/tires/for/2024-ford-f-150",
+                      "status":  "posted",
+                      "postedAt":  "2026-03-24 09:48:44",
+                      "fbPostId":  "342480058751_1557584569703003"
+                  },
+                  {
+                      "id":  2,
+                      "date":  "2026-03-26",
+                      "time":  "18:30",
+                      "type":  "lifted",
+                      "copy":  "Running a 4\" lift? 6\"? Just leveled? Doesn\u0027t matter — we match the right tire size and wheel offset to your setup so nothing rubs.",
+                      "url":  "https://shop.warehousetiredirect.com/lifted",
+                      "status":  "pending"
+                  },
+                  {
+                      "id":  3,
+                      "date":  "2026-03-27",
+                      "time":  "09:30",
+                      "type":  "category",
+                      "copy":  "All-terrain tires are the most requested category we carry. If you\u0027re after a KO2, Wildpeak, or Ridge Grappler — check what\u0027s in stock for your truck.",
+                      "url":  "https://shop.warehousetiredirect.com/tires/c/all-terrain",
+                      "status":  "pending"
+                  },
+                  {
+                      "id":  4,
+                      "date":  "2026-03-28",
+                      "time":  "18:30",
+                      "type":  "vehicle",
+                      "copy":  "Silverado guys always ask us: \u0027Can I fit 33s on stock?\u0027 Depends on your year and trim. Plug it in and we\u0027ll show you exactly what works.",
+                      "url":  "https://shop.warehousetiredirect.com/tires/for/2024-chevrolet-silverado-1500",
+                      "status":  "pending"
+                  },
+                  {
+                      "id":  5,
+                      "date":  "2026-03-29",
+                      "time":  "10:30",
+                      "type":  "category",
+                      "copy":  "20-inch wheels are the sweet spot for most trucks — big enough to look right, practical enough to find good tires. See what fits yours.",
+                      "url":  "https://shop.warehousetiredirect.com/wheels?diameter=20",
+                      "status":  "pending"
+                  },
+                  {
+                      "id":  6,
+                      "date":  "2026-03-30",
+                      "time":  "10:30",
+                      "type":  "vehicle",
+                      "copy":  "Wrangler owners know the struggle — everyone\u0027s got an opinion on what size you can fit. We just show you what actually works for your JL or JK.",
+                      "url":  "https://shop.warehousetiredirect.com/tires/for/2024-jeep-wrangler",
+                      "status":  "pending"
+                  },
+                  {
+                      "id":  7,
+                      "date":  "2026-03-31",
+                      "time":  "09:30",
+                      "type":  "general",
+                      "copy":  "We don\u0027t list tires that \u0027might\u0027 fit. If it\u0027s on the page for your vehicle, it fits. That\u0027s the whole point.",
+                      "url":  "https://shop.warehousetiredirect.com/",
+                      "status":  "pending"
+                  },
+                  {
+                      "id":  8,
+                      "date":  "2026-04-01",
+                      "time":  "18:30",
+                      "type":  "vehicle",
+                      "copy":  "Tacoma owners are picky about fitment (we get it). Stock, leveled, or lifted — we filter down to what actually clears your setup.",
+                      "url":  "https://shop.warehousetiredirect.com/tires/for/2024-toyota-tacoma",
+                      "status":  "pending"
+                  },
+                  {
+                      "id":  9,
+                      "date":  "2026-04-02",
+                      "time":  "09:30",
+                      "type":  "category",
+                      "copy":  "35x12.50R20 is hands-down the most popular lifted truck size we sell. If you\u0027re running 20s with a lift, this is probably what you want.",
+                      "url":  "https://shop.warehousetiredirect.com/tires/s/35x12.50r20",
+                      "status":  "pending"
+                  },
+                  {
+                      "id":  10,
+                      "date":  "2026-04-03",
+                      "time":  "18:30",
+                      "type":  "vehicle",
+                      "copy":  "The Ram 1500 has a ton of wheel and tire options — but half of them don\u0027t fit without trimming. We filter that out so you\u0027re not guessing.",
+                      "url":  "https://shop.warehousetiredirect.com/tires/for/2024-ram-1500",
+                      "status":  "pending"
+                  },
+                  {
+                      "id":  11,
+                      "date":  "2026-04-04",
+                      "time":  "09:30",
+                      "type":  "lifted",
+                      "copy":  "Most tire sites don\u0027t account for lifts. We do. Tell us your setup and we\u0027ll show you what actually fits without rubbing at full turn.",
+                      "url":  "https://shop.warehousetiredirect.com/lifted",
+                      "status":  "pending"
+                  },
+                  {
+                      "id":  12,
+                      "date":  "2026-04-05",
+                      "time":  "10:30",
+                      "type":  "category",
+                      "copy":  "Summer compound, max grip, sticky sidewalls — if you\u0027re after performance tires, we carry the real ones. Pilot Sports, PS4S, Indy 500s, all in stock.",
+                      "url":  "https://shop.warehousetiredirect.com/tires/c/performance",
+                      "status":  "pending"
+                  },
+                  {
+                      "id":  13,
+                      "date":  "2026-04-06",
+                      "time":  "10:30",
+                      "type":  "vehicle",
+                      "copy":  "The F-150 is America\u0027s best-selling truck, which means every tire site lists a million options. We cut it down to what fits YOUR F-150 specifically.",
+                      "url":  "https://shop.warehousetiredirect.com/tires/for/2024-ford-f-150",
+                      "status":  "pending"
+                  },
+                  {
+                      "id":  14,
+                      "date":  "2026-04-07",
+                      "time":  "18:30",
+                      "type":  "general",
+                      "copy":  "We\u0027re not a marketplace listing random sellers. We\u0027re a tire shop with real inventory, real fitment data, and install partners if you want someone to mount them.",
+                      "url":  "https://shop.warehousetiredirect.com/",
+                      "status":  "pending"
+                  }
+              ]
+}

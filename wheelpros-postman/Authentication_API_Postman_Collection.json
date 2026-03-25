@@ -1,0 +1,260 @@
+{
+    "item": [
+        {
+            "id": "85150831-ae20-4f6e-a200-cb55309dae0b",
+            "name": "Authentication",
+            "request": {
+                "name": "Authentication",
+                "description": {
+                    "content": "## Steps need to be followed before using the Wheel Pros APIs\n- Register the **user** account in [Product Data Portal](https://data.wheelpros.com)\n- Once the admin approves the account the one-time password will be sent to the registered email address\n- Update the password in the Product Data Portal Portal\n- Request Wheel Pros for APIs you want to access\n## Using AuthToken to Access the Wheel Pros APIs\n\n- accessToken we get in authorize API is the short living token. We can use this token to access the developer APIs.\n- To access the Wheelpros developer APIs the token needs to be part of the request headers\n\n\n  **Required Headers to access Wheel Pros APIs:**\n\n  Authorization: Bearer AccessToken\n\n**Example CURL for usage for AccessToken**\n```curl\ncurl --location --request GET 'https://dev.api.wheelpros.com/pricing/v1/SKU12345?company=1000' \\\n--header 'Authorization: Bearer g2vwheella6z8jy6prosp1tokenn9test'\n```\n",
+                    "type": "text/plain"
+                },
+                "url": {
+                    "path": [
+                        "v1",
+                        "authorize"
+                    ],
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "query": [],
+                    "variable": []
+                },
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    },
+                    {
+                        "key": "Accept",
+                        "value": "application/json"
+                    }
+                ],
+                "method": "POST",
+                "auth": null,
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"userName\": \"<string>\",\n  \"password\": \"<string>\"\n}",
+                    "options": {
+                        "raw": {
+                            "language": "json"
+                        }
+                    }
+                }
+            },
+            "response": [
+                {
+                    "id": "36a63b88-dc66-4737-8c62-8b0c6e9d9513",
+                    "name": "Auth response",
+                    "originalRequest": {
+                        "url": {
+                            "path": [
+                                "v1",
+                                "authorize"
+                            ],
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "query": [],
+                            "variable": []
+                        },
+                        "method": "POST",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"userName\": \"username@wheelpros.com\",\n  \"password\": \"strongPassword\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "status": "OK",
+                    "code": 200,
+                    "header": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ],
+                    "body": "{\n  \"accessToken\": \"eqyJrJiOiJ6*****\",\n  \"tokenType\": \"Bearer\",\n  \"expiresIn\": 3600\n}",
+                    "cookie": [],
+                    "_postman_previewlanguage": "json"
+                },
+                {
+                    "id": "d4443d26-7837-4d45-af34-b66734ef5d26",
+                    "name": "This status code will be thrown when the request validation fails",
+                    "originalRequest": {
+                        "url": {
+                            "path": [
+                                "v1",
+                                "authorize"
+                            ],
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "query": [],
+                            "variable": []
+                        },
+                        "method": "POST",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"userName\": \"username@wheelpros.com\",\n  \"password\": \"strongPassword\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "status": "Bad Request",
+                    "code": 400,
+                    "header": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ],
+                    "body": "{\n  \"errorCode\": \"VALIDATION_FAILED\",\n  \"errorMessage\": \"body missing required parameters\",\n  \"errorType\": \"BusinessException\"\n}",
+                    "cookie": [],
+                    "_postman_previewlanguage": "json"
+                },
+                {
+                    "id": "ea56c98f-a199-4b0f-86d2-4e0fc0b137e6",
+                    "name": "This status code will be thrown when the credentials are invalid.",
+                    "originalRequest": {
+                        "url": {
+                            "path": [
+                                "v1",
+                                "authorize"
+                            ],
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "query": [],
+                            "variable": []
+                        },
+                        "method": "POST",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"userName\": \"username@wheelpros.com\",\n  \"password\": \"strongPassword\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "status": "Unauthorized",
+                    "code": 401,
+                    "header": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ],
+                    "body": "{\n  \"errorCode\": \"NotAuthorizedException\",\n  \"errorMessage\": \"User is disabled.\",\n  \"errorType\": \"AuthException\"\n}",
+                    "cookie": [],
+                    "_postman_previewlanguage": "json"
+                },
+                {
+                    "id": "893cab0d-1d4a-4239-9eea-7a779002d527",
+                    "name": "This status code will be thrown when un-expected system error occurs",
+                    "originalRequest": {
+                        "url": {
+                            "path": [
+                                "v1",
+                                "authorize"
+                            ],
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "query": [],
+                            "variable": []
+                        },
+                        "method": "POST",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"userName\": \"username@wheelpros.com\",\n  \"password\": \"strongPassword\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "status": "Internal Server Error",
+                    "code": 500,
+                    "header": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ],
+                    "body": "{\n  \"errorMessage\": \"Some error message.\",\n  \"errorType\": \"SystemException\"\n}",
+                    "cookie": [],
+                    "_postman_previewlanguage": "json"
+                },
+                {
+                    "id": "a67e559f-0c71-43bb-a021-dff344d716ac",
+                    "name": "unexpected error",
+                    "originalRequest": {
+                        "url": {
+                            "path": [
+                                "v1",
+                                "authorize"
+                            ],
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "query": [],
+                            "variable": []
+                        },
+                        "method": "POST",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"userName\": \"username@wheelpros.com\",\n  \"password\": \"strongPassword\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "status": "Internal Server Error",
+                    "code": 500,
+                    "header": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ],
+                    "body": "{\n  \"errorCode\": \"Ut do sunt exercitation\",\n  \"errorMessage\": \"sunt mol\",\n  \"errorType\": \"do cupidatat officia ad\"\n}",
+                    "cookie": [],
+                    "_postman_previewlanguage": "json"
+                }
+            ],
+            "event": [],
+            "protocolProfileBehavior": {
+                "disableBodyPruning": true
+            }
+        }
+    ],
+    "event": [],
+    "variable": [
+        {
+            "type": "string",
+            "value": "https://api.wheelpros.com/auth",
+            "key": "baseUrl"
+        }
+    ],
+    "info": {
+        "_postman_id": "f36844d3-b0aa-400e-9df3-bd2336acfcb3",
+        "name": "Wheel Pros Auth API",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+        "description": {
+            "content": "Authentication API",
+            "type": "text/plain"
+        }
+    }
+}

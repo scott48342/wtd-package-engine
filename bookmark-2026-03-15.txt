@@ -1,0 +1,53 @@
+BOOKMARK / STATUS — 2026-03-15
+
+Session backup:
+- C:\Users\Scott-Pc\clawd\chat-backups\sessions-2026-03-15-181202\
+
+Progress log:
+- C:\Users\Scott-Pc\clawd\memory\2026-03-15.md
+
+SUMMARY (what we built)
+
+1) Quotes (shareable + printable)
+- /quote/new quote builder (screenshot-style layout)
+- /quote/[id] saved quote page (shareable + print) matching builder layout
+- POST /api/quotes/create to save quotes (customer info collected in modal)
+- /admin/quotes list/search saved customer quotes
+
+2) Quote UX flow
+- “Build quote” buttons on wheel PDP + tire PDP
+- Add Tires modal on /quote/new
+- OEM tire size filtering matches selected wheel diameter
+- Wheel/tire carry-over params preserved through: tires results → tire PDP → back to quote, plus header vehicle picker/My Garage
+
+3) Admin portal
+- Admin password gate for /admin/*
+- Admin Settings page (tax rate)
+- Admin Catalog (services/add-ons):
+  - required vs optional services
+  - contextual pricing: tire vs wheel vs package
+  - applicability toggles (include in tire/wheel/package quotes)
+  - Edit + Delete for existing items
+- Rebates admin workflow
+
+4) Fitment upstream (package engine)
+- Root cause: Wheel‑Size returns different OEM packages by modification vs region
+- Package engine updated to merge region+mod fitments
+- refresh=1 added to bypass cache and repopulate OEM tire sizes
+
+5) Header + performance
+- MegaMenu overlay hang fixed (close on outside click/Escape/navigation)
+- Homepage simplified to static tiles for speed (removed live inventory fetches)
+
+6) Category browse
+- /tires/c/all-terrain category page
+- /api/wp/tires/browse endpoint + debug mode
+- Category page uses relative fetch so it works in prod
+
+NEXT TODO
+1) Verify /tires/c/all-terrain displays results in prod after latest deploy; refine All‑Terrain matching if needed.
+2) Build similar category pages for All‑Season tires.
+3) Build wheels browse pages for 18" and 20" wheels (fast, paginated).
+4) Quote snapshotting: store image/spec snapshots in quote JSON at save time so saved quotes remain stable.
+5) Service edit/remove controls beyond required/optional behavior (if desired).
+6) Add confirm dialog back for admin catalog delete (via small client component).

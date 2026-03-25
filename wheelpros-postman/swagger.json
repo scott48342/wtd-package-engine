@@ -1,0 +1,2696 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "WheelPros Product API",
+    "description": "Product API\n\n# Authentication\n\n<!-- ReDoc-Inject: <security-definitions> -->",
+    "version": "1.0.0",
+    "x-logo": {
+      "url": "https://developer.wheelpros.com/assets/images/logo-black.png",
+      "backgroundColor": "#FFFFFF",
+      "altText": "WheelPros"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://api.wheelpros.com/products",
+      "description": "Production server"
+    },
+    {
+      "url": "https://stage.api.wheelpros.com/products",
+      "description": "Stage (Requires specific access for Staging Envirnoment)"
+    }
+  ],
+  "paths": {
+    "/v1/details/{sku}": {
+      "get": {
+        "operationId": "getProductBySku",
+        "description": "Get product information for a specific sku",
+        "summary": "Product - Get Detailed Product Data",
+        "parameters": [
+          {
+            "name": "sku",
+            "in": "path",
+            "description": "sku to get product information",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Product Data response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductWheelDetailedResponse"
+                },
+                "examples": {
+                  "wheel": {
+                    "value": {
+                      "sku": "ABL19-22900015MG",
+                      "upc": "885463282480",
+                      "skuType": "WHEEL",
+                      "title": "AB19 22X9 BLANK M-GRAPHITE 15MM (108-121)",
+                      "brand": {
+                        "code": "AB",
+                        "description": "Asanti Black",
+                        "parent": "Asanti"
+                      },
+                      "inventory": {
+                        "type": "N2",
+                        "localStock": 0,
+                        "globalStock": 2
+                      },
+                      "properties": {
+                        "model": "ABL-19 ATHENA",
+                        "offset": "15.0",
+                        "boltPattern": "BLANK",
+                        "finishCode": "GRAY",
+                        "finish": "MATTE GRAPHITE",
+                        "width": "9.00",
+                        "diameter": "22.00",
+                        "centerbore": "72.56",
+                        "backspacing": "5.59",
+                        "wheelWeight": "34.98/77.13",
+                        "capPartNo": "ABLCAP-MG",
+                        "rivetPartNo": "NONE",
+                        "tpmsCompatible": 1,
+                        "lipDepth": "0.00",
+                        "certification": "SAEJ2530",
+                        "structuralWarranty": "LIFETIME",
+                        "finishWarranty": "ONE YEAR",
+                        "openEndCap": "NONE",
+                        "capScrewNo": "SNAP IN",
+                        "otherAccessories": "FLANGE STICKER : ABLINS338-22",
+                        "additionalAccessories": "NONE",
+                        "catalogPage": "VOL 19 PG 117",
+                        "loadRating": "848/1869.84",
+                        "sizeDesc": "22X9"
+                      },
+                      "images": [
+                        {
+                          "aspect": "Standard",
+                          "imageUrlOriginal": "https://media.wheelpros.com/m/4fc9914ef9df3e3f/original/ABL196-A1-png.png",
+                          "imageUrlSmall": "https://media.wheelpros.com/m/4fc9914ef9df3e3f/Small-ABL196-A1-png.png",
+                          "imageUrlMedium": "https://media.wheelpros.com/m/4fc9914ef9df3e3f/Medium-ABL196-A1-png.png",
+                          "imageUrlLarge": "https://media.wheelpros.com/m/4fc9914ef9df3e3f/Large-ABL196-A1-png.png"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/validationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/systemError"
+          }
+        }
+      }
+    },
+    "/v1/search/wheel": {
+      "get": {
+        "description": "Search wheel products information using filters.\nReturns summarized list of wheel products matching search criteria\n",
+        "summary": "Product - Find wheels",
+        "operationId": "wheelSearch",
+        "parameters": [
+          {
+            "name": "facetCount",
+            "in": "query",
+            "description": "This parameter is to control the number of buckets for the facet's retrieved.",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "default": 10,
+              "minimum": 1,
+              "maximum": 1000,
+              "example": 5
+            }
+          },
+          {
+            "name": "sortOrder",
+            "in": "query",
+            "description": "This parameter controls the direction of the data sort. This parameter is only applicable\nwhen used in combination with the sortField parameter\n",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "example": "desc"
+            }
+          },
+          {
+            "name": "sortField",
+            "in": "query",
+            "required": false,
+            "description": "The name of the field to sort the data on. The allowed valus for sorting are \\:\nbrand | popularity | price | status | style | styleNumber\n",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "brand",
+                "popularity",
+                "price",
+                "status",
+                "style",
+                "styleNumber"
+              ],
+              "example": "brand"
+            }
+          },
+          {
+            "name": "priceType",
+            "in": "query",
+            "description": "An string holding the additional pricing types to be included in the response. This is an optional parameter.\nWhen used additional parameter becomes required: company. For service user, customer parameter is available to pass a customer number and override the default.\nFor non-service user or when the customer is not provided, it's auto-populated with their own customer number.\n",
+            "schema": {
+              "type": "string",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "msrp",
+                  "map",
+                  "nip"
+                ]
+              },
+              "default": [
+                "msrp"
+              ]
+            },
+            "example": "msrp,map,nip"
+          },
+          {
+            "name": "company",
+            "in": "query",
+            "description": "This value determines the sales org to be used.\n* 1000 (CAD | USD)\n* 1500 (USD)\n* 4000 (CAD)\n* 5000 (AUD)\n* 6000 (GBP)\n* 7000 (EUR)\n",
+            "example": 1000,
+            "schema": {
+              "type": "string",
+              "enum": [
+                1000,
+                1500,
+                4000,
+                5000,
+                6000,
+                7000
+              ]
+            }
+          },
+          {
+            "name": "customer",
+            "in": "query",
+            "description": "This is a special parameter which is required only for service accounts. The parameter is used to override the customer number passed to the backend. When not provided or if the user is non-service user then it's auto-populated with their customer number.",
+            "example": 1479909,
+            "schema": {
+              "type": "string",
+              "maxLength": 10
+            }
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Free text string to filter results",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sku",
+            "in": "query",
+            "description": "sku search to filter the results. This property also support multiple inputs in the query parameter.",
+            "schema": {
+              "type": "array",
+              "minItems": 0,
+              "maxItems": 100,
+              "items": {
+                "type": "string"
+              }
+            },
+            "example": "wheel1&sku=wheel2"
+          },
+          {
+            "name": "fields",
+            "in": "query",
+            "description": "To list what additional information to be included in response.\nBy default neither inventory nor price will be returned\n",
+            "schema": {
+              "type": "string",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "inventory",
+                  "price"
+                ]
+              },
+              "example": "inventory,price",
+              "default": []
+            }
+          },
+          {
+            "name": "inventoryOrderType",
+            "in": "query",
+            "description": "The inventory type code for the wheel:\n**Note:**  It is multi-value Query Parameter.\n\n- **BL** - blank wheels\n- **BW** - blowout price wheel\n- **CF** - configurable wheel\n- **CS** - custom made wheel\n- **DB** - drilled from blank wheel\n- **IT** - import or international wheel\n- **N2** - discontinued wheel\n- **NW** - new wheel\n- **RG** - regional sales wheel\n- **ST** - standard stocking wheel\n",
+            "schema": {
+              "type": "string",
+              "items": {
+                "type": "string"
+              },
+              "example": "BL",
+              "default": []
+            }
+          },
+          {
+            "name": "currencyCode",
+            "in": "query",
+            "description": "Currency code to return pricing info",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USD",
+                "AUD",
+                "GBP",
+                "CAD",
+                "EUR"
+              ],
+              "default": [
+                "USD"
+              ]
+            }
+          },
+          {
+            "name": "vehicleYear",
+            "in": "query",
+            "description": "The vehicle year",
+            "schema": {
+              "type": "number",
+              "example": 2020
+            }
+          },
+          {
+            "name": "vehicleMake",
+            "in": "query",
+            "description": "The vehicle make",
+            "schema": {
+              "type": "string",
+              "example": "Audi"
+            }
+          },
+          {
+            "name": "vehicleModel",
+            "in": "query",
+            "description": "The vehicle model",
+            "schema": {
+              "type": "string",
+              "example": "S5"
+            }
+          },
+          {
+            "name": "vehicleSubModel",
+            "in": "query",
+            "description": "The vehicle sub-model",
+            "schema": {
+              "type": "string",
+              "example": "quattro"
+            }
+          },
+          {
+            "name": "warehouse",
+            "in": "query",
+            "description": "Preferred warehouse",
+            "schema": {
+              "type": "string",
+              "example": 1085
+            }
+          },
+          {
+            "name": "minQuantity",
+            "in": "query",
+            "description": "Only warehouses and skus with at least the minimum quantity will be included in the results",
+            "schema": {
+              "type": "number",
+              "example": 2
+            }
+          },
+          {
+            "name": "brand",
+            "in": "query",
+            "description": "Filter wheels by brand",
+            "schema": {
+              "type": "string",
+              "example": "Black Rhino"
+            }
+          },
+          {
+            "name": "boltPattern",
+            "in": "query",
+            "description": "Filter wheels by bolt pattern (metric)",
+            "schema": {
+              "type": "string",
+              "example": "5x114.3"
+            }
+          },
+          {
+            "name": "finish",
+            "in": "query",
+            "description": "Filter wheels by finish",
+            "schema": {
+              "type": "string",
+              "example": "BLACK"
+            }
+          },
+          {
+            "name": "diameter",
+            "in": "query",
+            "description": "Filter wheels by diameter",
+            "schema": {
+              "type": "number",
+              "example": 19
+            }
+          },
+          {
+            "name": "width",
+            "in": "query",
+            "description": "Filter wheels by width",
+            "schema": {
+              "type": "string",
+              "example": 7.5
+            }
+          },
+          {
+            "name": "minOffset",
+            "in": "query",
+            "description": "Filter wheels by offset greater than or equal to this offset",
+            "schema": {
+              "type": "number",
+              "example": 35
+            }
+          },
+          {
+            "name": "maxOffset",
+            "in": "query",
+            "description": "Filter wheels by offset less than or equal to this offset",
+            "schema": {
+              "type": "number",
+              "example": 35
+            }
+          },
+          {
+            "name": "offsetType",
+            "in": "query",
+            "description": "Filter wheels by offset type",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "CUSTOM",
+                "RANGE"
+              ],
+              "example": "RANGE"
+            }
+          },
+          {
+            "name": "centerbore",
+            "in": "query",
+            "description": "Filter wheels by centerbore",
+            "schema": {
+              "type": "string",
+              "example": "76.2"
+            }
+          },
+          {
+            "name": "includeStaggered",
+            "in": "query",
+            "description": "Include staggered wheel fitment. ( The vehicle needs to be selected for the staggered response. )\n**Note:** Staggered results are paginated based on models matching with the given search criteria\n",
+            "schema": {
+              "type": "boolean",
+              "enum": [
+                true,
+                false
+              ],
+              "default": false,
+              "example": true
+            }
+          },
+          {
+            "name": "includeLifted",
+            "in": "query",
+            "description": "Include lifted wheel fitment",
+            "schema": {
+              "type": "boolean",
+              "enum": [
+                true,
+                false
+              ],
+              "default": false,
+              "example": true
+            }
+          },
+          {
+            "name": "singleDrillOnly",
+            "in": "query",
+            "description": "Filter wheels by single drill only",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "The paginated page results to return",
+            "schema": {
+              "type": "number",
+              "default": 1,
+              "minimum": 1,
+              "example": 2
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "The page size for each page",
+            "schema": {
+              "type": "number",
+              "default": 50,
+              "minimum": 1,
+              "maximum": 100,
+              "example": 25
+            }
+          },
+          {
+            "name": "availabilityType",
+            "in": "query",
+            "description": "Filter wheels by availability type",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ALL",
+                "LOCAL",
+                "AVAILABLE"
+              ],
+              "default": "ALL",
+              "example": "AVAILABLE"
+            }
+          },
+          {
+            "name": "realTimeInventory",
+            "in": "query",
+            "description": "If search should consider inventory in real time (higher response latency)",
+            "schema": {
+              "type": "boolean",
+              "enum": [
+                true,
+                false
+              ],
+              "default": false,
+              "example": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful product wheel search response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductWheelResponse"
+                },
+                "examples": {
+                  "wheel": {
+                    "value": {
+                      "results": [
+                        {
+                          "sku": "ABL12-22055635BK",
+                          "upc": "885463235127",
+                          "skuType": "WHEEL",
+                          "title": "AB12 22X10.5 5X112 G-BLK 35MM",
+                          "brand": {
+                            "code": "AB",
+                            "description": "Asanti Black",
+                            "parent": "Asanti"
+                          },
+                          "inventory": {
+                            "type": "ST",
+                            "localStock": 0,
+                            "globalStock": 38
+                          },
+                          "properties": {
+                            "model": "ABL-12 ORION",
+                            "offset": "35.0",
+                            "boltPattern": "5X112",
+                            "finishCode": "BLACK",
+                            "finish": "GLOSS BLACK",
+                            "width": "10.50",
+                            "diameter": "22.00",
+                            "centerbore": "72.56"
+                          },
+                          "prices": {
+                            "msrp": [
+                              {
+                                "currencyAmount": "398.0",
+                                "currencyCode": "USD"
+                              }
+                            ],
+                            "nip": [
+                              {
+                                "currencyAmount": "340.0",
+                                "currencyCode": "USD"
+                              }
+                            ],
+                            "map": [
+                              {
+                                "currencyAmount": "270.0",
+                                "currencyCode": "USD"
+                              }
+                            ]
+                          },
+                          "images": [
+                            {
+                              "aspect": "Standard",
+                              "imageUrlOriginal": "https://media.wheelpros.com/m/bf43d14755489fca/original/ABL123-A1-png.png",
+                              "imageUrlSmall": "https://media.wheelpros.com/m/bf43d14755489fca/Small-ABL123-A1-png.png",
+                              "imageUrlMedium": "https://media.wheelpros.com/m/bf43d14755489fca/Medium-ABL123-A1-png.png",
+                              "imageUrlLarge": "https://media.wheelpros.com/m/bf43d14755489fca/Large-ABL123-A1-png.png"
+                            }
+                          ]
+                        }
+                      ],
+                      "totalCount": 1387,
+                      "page": 2,
+                      "pageSize": 50
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/validationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/systemError"
+          }
+        }
+      }
+    },
+    "/v1/search/tire": {
+      "get": {
+        "description": "Search tire products information using filters.\nReturns summarized list of tire products matching search criteria\n",
+        "summary": "Product - Find tires",
+        "operationId": "tireSearch",
+        "parameters": [
+          {
+            "name": "facetCount",
+            "in": "query",
+            "description": "This parameter is to control the number of buckets for the facet's retrieved.",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "default": 10,
+              "minimum": 1,
+              "maximum": 1000,
+              "example": 5
+            }
+          },
+          {
+            "name": "sortOrder",
+            "in": "query",
+            "description": "This parameter controls the direction of the data sort. This parameter is only applicable\nwhen used in combination with the sortField parameter\n",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "example": "desc"
+            }
+          },
+          {
+            "name": "sortField",
+            "in": "query",
+            "required": false,
+            "description": "The name of the field to sort the data on. The allowed valus for sorting are \\:\nbrand | popularity | price | status | style | styleNumber\n",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "brand",
+                "popularity",
+                "price",
+                "status",
+                "style",
+                "styleNumber"
+              ],
+              "example": "brand"
+            }
+          },
+          {
+            "name": "priceType",
+            "in": "query",
+            "description": "An string holding the additional pricing types to be included in the response. This is an optional parameter.\nWhen used additional parameter becomes required: company. For service user, customer parameter is available to pass a customer number and override the default.\nFor non-service user or when the customer is not provided, it's auto-populated with their own customer number.\n",
+            "schema": {
+              "type": "string",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "msrp",
+                  "map",
+                  "nip"
+                ]
+              },
+              "default": [
+                "msrp"
+              ]
+            },
+            "example": "msrp,map,nip"
+          },
+          {
+            "name": "company",
+            "in": "query",
+            "description": "This value determines the sales org to be used.\n* 1000 (CAD | USD)\n* 1500 (USD)\n* 4000 (CAD)\n* 5000 (AUD)\n* 6000 (GBP)\n* 7000 (EUR)\n",
+            "example": 1000,
+            "schema": {
+              "type": "string",
+              "enum": [
+                1000,
+                1500,
+                4000,
+                5000,
+                6000,
+                7000
+              ]
+            }
+          },
+          {
+            "name": "customer",
+            "in": "query",
+            "description": "This is a special parameter which is required only for service accounts. The parameter is used to override the customer number passed to the backend. When not provided or if the user is non-service user then it's auto-populated with their customer number.",
+            "example": 1479909,
+            "schema": {
+              "type": "string",
+              "maxLength": 10
+            }
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Free text string to filter results",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sku",
+            "in": "query",
+            "description": "sku search to filter the results. This property also support multiple inputs in the query parameter.",
+            "schema": {
+              "type": "array",
+              "minItems": 0,
+              "maxItems": 100,
+              "items": {
+                "type": "string"
+              }
+            },
+            "example": "tire1&sku=tire2"
+          },
+          {
+            "name": "fields",
+            "in": "query",
+            "description": "To list what additional information to be included in response.\nBy default neither inventory nor price will be returned\n",
+            "schema": {
+              "type": "string",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "inventory",
+                  "price"
+                ]
+              },
+              "example": "inventory,price",
+              "default": []
+            }
+          },
+          {
+            "name": "inventoryOrderType",
+            "in": "query",
+            "description": "The inventory type code for the wheel:\n**Note:**  It is multi-value Query Parameter.\n\n- **BL** - blank wheels\n- **BW** - blowout price wheel\n- **CF** - configurable wheel\n- **CS** - custom made wheel\n- **DB** - drilled from blank wheel\n- **IT** - import or international wheel\n- **N2** - discontinued wheel\n- **NW** - new wheel\n- **RG** - regional sales wheel\n- **ST** - standard stocking wheel\n",
+            "schema": {
+              "type": "string",
+              "items": {
+                "type": "string"
+              },
+              "example": "BL",
+              "default": []
+            }
+          },
+          {
+            "name": "currencyCode",
+            "in": "query",
+            "description": "Currency code to return pricing info",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USD",
+                "AUD",
+                "GBP",
+                "CAD",
+                "EUR"
+              ],
+              "default": [
+                "USD"
+              ]
+            }
+          },
+          {
+            "name": "vehicleYear",
+            "in": "query",
+            "description": "The vehicle year",
+            "schema": {
+              "type": "number",
+              "example": 2020
+            }
+          },
+          {
+            "name": "vehicleMake",
+            "in": "query",
+            "description": "The vehicle make",
+            "schema": {
+              "type": "string",
+              "example": "Audi"
+            }
+          },
+          {
+            "name": "vehicleModel",
+            "in": "query",
+            "description": "The vehicle model",
+            "schema": {
+              "type": "string",
+              "example": "S5"
+            }
+          },
+          {
+            "name": "vehicleSubModel",
+            "in": "query",
+            "description": "The vehicle sub-model",
+            "schema": {
+              "type": "string",
+              "example": "quattro"
+            }
+          },
+          {
+            "name": "warehouse",
+            "in": "query",
+            "description": "Preferred warehouse",
+            "schema": {
+              "type": "string",
+              "example": 1085
+            }
+          },
+          {
+            "name": "minQuantity",
+            "in": "query",
+            "description": "Only warehouses and skus with at least the minimum quantity will be included in the results",
+            "schema": {
+              "type": "number",
+              "example": 2
+            }
+          },
+          {
+            "name": "brand",
+            "in": "query",
+            "description": "Filter tires by brand",
+            "schema": {
+              "type": "string",
+              "example": "Bridgestone"
+            }
+          },
+          {
+            "name": "diameter",
+            "in": "query",
+            "description": "Filter tires by tire diameter",
+            "schema": {
+              "type": "string",
+              "example": 30.5
+            }
+          },
+          {
+            "name": "wheelDiameter",
+            "in": "query",
+            "description": "Filter tires by wheel diameter",
+            "schema": {
+              "type": "number",
+              "example": "19"
+            }
+          },
+          {
+            "name": "width",
+            "in": "query",
+            "description": "Filter tires by width",
+            "schema": {
+              "type": "string",
+              "example": "215"
+            }
+          },
+          {
+            "name": "aspectRatio",
+            "in": "query",
+            "description": "Filter tires by aspect ratio",
+            "schema": {
+              "type": "number",
+              "example": 65
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "The paginated page results to return",
+            "schema": {
+              "type": "number",
+              "default": 1,
+              "minimum": 1,
+              "example": 2
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "The page size for each page",
+            "schema": {
+              "type": "number",
+              "default": 50,
+              "minimum": 1,
+              "maximum": 100,
+              "example": 25
+            }
+          },
+          {
+            "name": "availabilityType",
+            "in": "query",
+            "description": "Filter tires by availability type",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ALL",
+                "LOCAL",
+                "AVAILABLE"
+              ],
+              "default": "ALL",
+              "example": "AVAILABLE"
+            }
+          },
+          {
+            "name": "realTimeInventory",
+            "in": "query",
+            "description": "If search should consider inventory in real time (higher response latency)",
+            "schema": {
+              "type": "boolean",
+              "enum": [
+                true,
+                false
+              ],
+              "default": false,
+              "example": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful product tire search response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductTireResponse"
+                },
+                "examples": {
+                  "tire": {
+                    "value": {
+                      "searchResults": [
+                        {
+                          "sku": "F28035524",
+                          "upc": "848983013729",
+                          "skuType": "TIRE",
+                          "title": "23535ZR20 92(Y) XL 26.5 AZENIS 2353520",
+                          "brand": {
+                            "code": "FK",
+                            "description": "Falken",
+                            "parent": "Falken"
+                          },
+                          "inventory": {
+                            "type": "ST",
+                            "localStock": 0,
+                            "globalStock": 3
+                          },
+                          "properties": {
+                            "model": "AZENIS FK510",
+                            "width": "235",
+                            "diameter": "26",
+                            "wheelDiameter": "20.0"
+                          },
+                          "prices": {
+                            "msrp": [
+                              {
+                                "currencyAmount": "398.0",
+                                "currencyCode": "USD"
+                              }
+                            ],
+                            "nip": [
+                              {
+                                "currencyAmount": "340.0",
+                                "currencyCode": "USD"
+                              }
+                            ],
+                            "map": [
+                              {
+                                "currencyAmount": "270.0",
+                                "currencyCode": "USD"
+                              }
+                            ]
+                          },
+                          "images": [
+                            {
+                              "aspect": "Standard",
+                              "imageUrlOriginal": "https://media.wheelpros.com/m/c0bdefd364871ddb/original/FALKEN-FK510_Standard-png.png",
+                              "imageUrlSmall": "https://media.wheelpros.com/m/c0bdefd364871ddb/Small-FALKEN-FK510_Standard-png.png",
+                              "imageUrlMedium": "https://media.wheelpros.com/m/c0bdefd364871ddb/Medium-FALKEN-FK510_Standard-png.png",
+                              "imageUrlLarge": "https://media.wheelpros.com/m/c0bdefd364871ddb/Large-FALKEN-FK510_Standard-png.png"
+                            }
+                          ]
+                        }
+                      ],
+                      "totalCount": 1823,
+                      "page": 2,
+                      "pageSize": 50
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/validationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/systemError"
+          }
+        }
+      }
+    },
+    "/v1/search/accessory": {
+      "get": {
+        "description": "Search accessory products information using filters.\nReturns summarized list of accessory products matching search criteria\n\n> Old endpoint is `/search/refined/{action}` <- accessory\n",
+        "summary": "Product - Find accessories",
+        "operationId": "accessorySearch",
+        "parameters": [
+          {
+            "name": "facetCount",
+            "in": "query",
+            "description": "This parameter is to control the number of buckets for the facet's retrieved.",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "default": 10,
+              "minimum": 1,
+              "maximum": 1000,
+              "example": 5
+            }
+          },
+          {
+            "name": "sortOrder",
+            "in": "query",
+            "description": "This parameter controls the direction of the data sort. This parameter is only applicable\nwhen used in combination with the sortField parameter\n",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "example": "desc"
+            }
+          },
+          {
+            "name": "sortField",
+            "in": "query",
+            "required": false,
+            "description": "The name of the field to sort the data on. The allowed valus for sorting are \\:\nbrand | popularity | price | status | style | styleNumber\n",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "brand",
+                "popularity",
+                "price",
+                "status",
+                "style",
+                "styleNumber"
+              ],
+              "example": "brand"
+            }
+          },
+          {
+            "name": "priceType",
+            "in": "query",
+            "description": "An string holding the additional pricing types to be included in the response. This is an optional parameter.\nWhen used additional parameter becomes required: company. For service user, customer parameter is available to pass a customer number and override the default.\nFor non-service user or when the customer is not provided, it's auto-populated with their own customer number.\n",
+            "schema": {
+              "type": "string",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "msrp",
+                  "map",
+                  "nip"
+                ]
+              },
+              "default": [
+                "msrp"
+              ]
+            },
+            "example": "msrp,map,nip"
+          },
+          {
+            "name": "company",
+            "in": "query",
+            "description": "This value determines the sales org to be used.\n* 1000 (CAD | USD)\n* 1500 (USD)\n* 4000 (CAD)\n* 5000 (AUD)\n* 6000 (GBP)\n* 7000 (EUR)\n",
+            "example": 1000,
+            "schema": {
+              "type": "string",
+              "enum": [
+                1000,
+                1500,
+                4000,
+                5000,
+                6000,
+                7000
+              ]
+            }
+          },
+          {
+            "name": "customer",
+            "in": "query",
+            "description": "This is a special parameter which is required only for service accounts. The parameter is used to override the customer number passed to the backend. When not provided or if the user is non-service user then it's auto-populated with their customer number.",
+            "example": 1479909,
+            "schema": {
+              "type": "string",
+              "maxLength": 10
+            }
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Free text string to filter results",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sku",
+            "in": "query",
+            "description": "sku search to filter the results. This property also support multiple inputs in the query parameter.",
+            "schema": {
+              "type": "array",
+              "minItems": 0,
+              "maxItems": 100,
+              "items": {
+                "type": "string"
+              }
+            },
+            "example": "accessory1&sku=accessory2"
+          },
+          {
+            "name": "fields",
+            "in": "query",
+            "description": "To list what additional information to be included in response.\nBy default neither inventory nor price will be returned\n",
+            "schema": {
+              "type": "string",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "inventory",
+                  "price"
+                ]
+              },
+              "example": "inventory,price",
+              "default": []
+            }
+          },
+          {
+            "name": "currencyCode",
+            "in": "query",
+            "description": "Currency code to return pricing info",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USD",
+                "AUD",
+                "GBP",
+                "CAD",
+                "EUR"
+              ],
+              "default": [
+                "USD"
+              ]
+            }
+          },
+          {
+            "name": "warehouse",
+            "in": "query",
+            "description": "Preferred warehouse",
+            "schema": {
+              "type": "string",
+              "example": 1085
+            }
+          },
+          {
+            "name": "minQuantity",
+            "in": "query",
+            "description": "Only warehouses and skus with at least the minimum quantity will be included in the results",
+            "schema": {
+              "type": "number",
+              "example": 2
+            }
+          },
+          {
+            "name": "brand",
+            "in": "query",
+            "description": "Filter tires by brand",
+            "schema": {
+              "type": "string",
+              "example": "Bridgestone"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "The paginated page results to return",
+            "schema": {
+              "type": "number",
+              "default": 1,
+              "minimum": 1,
+              "example": 2
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "The page size for each page",
+            "schema": {
+              "type": "number",
+              "default": 50,
+              "minimum": 1,
+              "maximum": 100,
+              "example": 25
+            }
+          },
+          {
+            "name": "availabilityType",
+            "in": "query",
+            "description": "Filter accessories by availability type",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ALL",
+                "LOCAL",
+                "AVAILABLE"
+              ],
+              "default": "ALL",
+              "example": "AVAILABLE"
+            }
+          },
+          {
+            "name": "realTimeInventory",
+            "in": "query",
+            "description": "If search should consider inventory in real time (higher response latency)",
+            "schema": {
+              "type": "boolean",
+              "enum": [
+                true,
+                false
+              ],
+              "default": false,
+              "example": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful product accessory search response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductAccessoryResponse"
+                },
+                "examples": {
+                  "tire": {
+                    "value": {
+                      "searchResults": [
+                        {
+                          "sku": "15-3485",
+                          "upc": "804879315636",
+                          "skuType": "ACC",
+                          "title": "RL GM HUB CENTRIC 12 WHEEL SPCRS-6LUG",
+                          "brand": {
+                            "code": "RS",
+                            "description": "ReadyLift Suspension",
+                            "parent": "ReadyLift"
+                          },
+                          "inventory": {
+                            "type": "ST"
+                          },
+                          "prices": {
+                            "msrp": [
+                              {
+                                "currencyAmount": "398.0",
+                                "currencyCode": "USD"
+                              }
+                            ],
+                            "nip": [
+                              {
+                                "currencyAmount": "340.0",
+                                "currencyCode": "USD"
+                              }
+                            ],
+                            "map": [
+                              {
+                                "currencyAmount": "270.0",
+                                "currencyCode": "USD"
+                              }
+                            ]
+                          },
+                          "images": [
+                            {
+                              "aspect": "Standard",
+                              "imageUrlOriginal": "https://media.wheelpros.com/m/0b32178c36b2fb93/original/RL-GM-HUB-CENTRIC-1-2-WHEEL-SPCRS-6LUG.jpg",
+                              "imageUrlSmall": "https://media.wheelpros.com/m/0b32178c36b2fb93/Small-RL-GM-HUB-CENTRIC-1-2-WHEEL-SPCRS-6LUG.png",
+                              "imageUrlMedium": "https://media.wheelpros.com/m/0b32178c36b2fb93/Medium-RL-GM-HUB-CENTRIC-1-2-WHEEL-SPCRS-6LUG.png",
+                              "imageUrlLarge": "https://media.wheelpros.com/m/0b32178c36b2fb93/Large-RL-GM-HUB-CENTRIC-1-2-WHEEL-SPCRS-6LUG.png"
+                            }
+                          ]
+                        }
+                      ],
+                      "totalCount": 1823,
+                      "page": 2,
+                      "pageSize": 50
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/validationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/systemError"
+          }
+        }
+      }
+    },
+    "/v1/brands": {
+      "get": {
+        "description": "Search product brands using filters.\n",
+        "summary": "Product - List brands",
+        "operationId": "listBrands",
+        "parameters": [
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Free text string to filter brand results",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "description": "The type of product",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "wheel",
+                  "tire",
+                  "accessory"
+                ]
+              }
+            },
+            "example": [
+              "WHEEL"
+            ]
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "The paginated page results to return",
+            "schema": {
+              "type": "number",
+              "default": 1,
+              "minimum": 1,
+              "example": 2
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "The page size for each page",
+            "schema": {
+              "type": "number",
+              "default": 50,
+              "minimum": 1,
+              "maximum": 100,
+              "example": 25
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful product brands list response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductBrandsResponse"
+                },
+                "examples": {
+                  "tire": {
+                    "value": {
+                      "results": [
+                        {
+                          "brand": "ATX Series",
+                          "brandCode": "AX",
+                          "brandCodeAAIA": "DKWK",
+                          "parentBrand": "ATX Series",
+                          "isTire": false,
+                          "isWheel": true,
+                          "isAccessory": true,
+                          "feeds": "US, CA, AU, GB, BE",
+                          "images": [
+                            {
+                              "layout": "Horizontal",
+                              "original": "https://media.wheelpros.com/m/1e43a00e17b4b19c/original/tire.jpeg",
+                              "colorTheme": "Dark",
+                              "transformBaseUrl": "https://media.wheelpros.com/transform/5c8726b0-d892-4c94-b432-a6b7743ad807/tire"
+                            }
+                          ]
+                        }
+                      ],
+                      "totalCount": 62,
+                      "page": 1,
+                      "pageSize": 50
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/validationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/systemError"
+          }
+        }
+      }
+    },
+    "/v1/brands/{brandCd}": {
+      "get": {
+        "description": "Get information for specific product brand\n",
+        "summary": "Product - Brand info",
+        "operationId": "brandInfo",
+        "parameters": [
+          {
+            "name": "brandCd",
+            "in": "path",
+            "description": "Product brand code",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful product brands list response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductBrandsResponse"
+                },
+                "examples": {
+                  "tire": {
+                    "value": {
+                      "results": [
+                        {
+                          "brand": "AMI",
+                          "brandCode": "AM",
+                          "brandCodeAAIA": null,
+                          "parentBrand": "AMI",
+                          "isTire": false,
+                          "isWheel": false,
+                          "isAccessory": true,
+                          "feeds": "US, CA",
+                          "images": [
+                            {
+                              "layout": "Stacked",
+                              "original": "https://media.wheelpros.com/m/c15f1513594e97aa/original/AMI-Styling-png.png",
+                              "colorTheme": "Dark",
+                              "transformBaseUrl": "https://media.wheelpros.com/transform/fd3ad81c-0337-41ec-9596-c15159ba8045/AMI-Styling-png"
+                            }
+                          ]
+                        }
+                      ],
+                      "totalCount": 1,
+                      "page": 1,
+                      "pageSize": 1
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/validationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/systemError"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "description": "- To use Wheel Pros Vehicle APIs the user must be authenticated by using their username and password\n- The request must contain the Authorization Bearer header with valid tokenString to access the APIs\n\n**CURL for sample request**\n```\ncurl --location --request GET 'https://dev.api.wheelpros.com/products/v1/search/wheel?filter=Black Rhino&currencyCode=USD&vehicleYear=2020&vehicleMake=Audi&vehicleModel=S5&vehicleSubModel=quattro&warehouse=reprehe&minQuantity=2&brand=Black Rhino&boltPattern=5x114.3&finish=BLACK&diameter=19&width=vel&minOffset=35&maxOffset=35&offsetType=RANGE&centerbore=76.2&includeStaggered=true&includeLifted=true&singleDrillOnly=laborum est adipisicing proident&page=2&pageSize=25&critera&availabilityType=AVAILABLE&realTimeInventory=true' \\\n--header 'Authorization: Bearer tokenString'\n--header 'Content-Type: application/json' \\\n```\n",
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "responses": {
+      "unauthorized": {
+        "description": "This status code will be thrown when the auth token is invalid.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/UnauthorizedError"
+            },
+            "examples": {
+              "unauthorized_request": {
+                "value": {
+                  "Message": "User is not authorized to access this resource with an explicit deny"
+                }
+              },
+              "forbidden_request": {
+                "value": {
+                  "message": "Forbidden"
+                }
+              }
+            }
+          }
+        }
+      },
+      "systemError": {
+        "description": "This status code will be thrown when un-expected system error occurs",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/SystemError"
+            },
+            "examples": {
+              "system_exception": {
+                "value": {
+                  "errorMessage": "Some error message.",
+                  "errorType": "SystemException"
+                }
+              }
+            }
+          }
+        }
+      },
+      "validationError": {
+        "description": "This status code will be thrown when the request validation fails",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/SystemError"
+            },
+            "examples": {
+              "invalid_query_param": {
+                "value": {
+                  "errorCode": "VALIDATION_FAILED",
+                  "errorMessage": "Some validation error message",
+                  "errorType": "BusinessException"
+                }
+              }
+            }
+          },
+          "text/html": {
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "ProductWheel": {
+        "properties": {
+          "sku": {
+            "description": "product wheel sku",
+            "type": "string"
+          }
+        }
+      },
+      "BrandProductResponseItemImage": {
+        "properties": {
+          "layout": {
+            "description": "Layout of the image",
+            "type": "string",
+            "enum": [
+              "Horizontal",
+              "Stacked"
+            ],
+            "example": "Stacked"
+          },
+          "original": {
+            "description": "The image url of original resolution of image.",
+            "type": "string",
+            "example": "https://media.wheelpros.com/m/9838494e7199a980/original/Performance-Replicas_LIGHT_STACKED-png.png"
+          },
+          "colorTheme": {
+            "description": "Color theme of the image",
+            "type": "string",
+            "enum": [
+              "Light",
+              "Dark"
+            ],
+            "example": "Light"
+          },
+          "transformBaseUrl": {
+            "description": "The image url to get dynamically resized image.",
+            "type": "string",
+            "enum": [
+              "Light",
+              "Dark"
+            ],
+            "example": "https://media.wheelpros.com/transform/42865e70-542a-46e1-89cb-75bc7425789b/Performance-Replicas_DARK_STACKED-png"
+          }
+        }
+      },
+      "ProductResponseItemImage": {
+        "properties": {
+          "aspect": {
+            "description": "Aspect of the image",
+            "type": "string",
+            "enum": [
+              "Standard",
+              "Face"
+            ],
+            "example": "Stacked"
+          },
+          "imageUrlOriginal": {
+            "description": "The image url of original resolution of image.",
+            "type": "string",
+            "example": "https://media.wheelpros.com/m/9838494e7199a980/original/Performance-Replicas_LIGHT_STACKED-png.png"
+          },
+          "imageUrlSmall": {
+            "description": "The image url of 100 X 100 resolution of image",
+            "type": "string",
+            "example": "https://media.wheelpros.com/m/9838494e7199a980/original/Performance-Replicas_LIGHT_STACKED-png.png"
+          },
+          "imageUrlMedium": {
+            "description": "The image url of 250 X 250 resolution of image",
+            "type": "string",
+            "example": "https://media.wheelpros.com/m/9838494e7199a980/original/Performance-Replicas_LIGHT_STACKED-png.png"
+          },
+          "imageUrlLarge": {
+            "description": "The image url of 500 X 500 resolution of image",
+            "type": "string",
+            "example": "https://media.wheelpros.com/m/9838494e7199a980/original/Performance-Replicas_LIGHT_STACKED-png.png"
+          }
+        }
+      },
+      "ProductResponseItemPrice": {
+        "properties": {
+          "currencyAmount": {
+            "description": "The price in the specified currency",
+            "type": "number",
+            "example": 180
+          },
+          "currencyCode": {
+            "description": "The currency code",
+            "type": "string",
+            "enum": [
+              "USD",
+              "GBP",
+              "AUD",
+              "CAD",
+              "EUR"
+            ],
+            "example": "USD"
+          }
+        }
+      },
+      "ProductResponseFacetItem": {
+        "description": "Facet information for particular facet values.",
+        "properties": {
+          "buckets": {
+            "description": "List of facet group values.",
+            "type": "array",
+            "items": {
+              "properties": {
+                "value": {
+                  "description": "The facet bucket name",
+                  "type": "string",
+                  "example": "ABC"
+                },
+                "count": {
+                  "description": "The facet bucket items count",
+                  "type": "number",
+                  "example": 10
+                }
+              }
+            }
+          }
+        }
+      },
+      "ProductWheelResponse": {
+        "properties": {
+          "results": {
+            "description": "The product wheel results list",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductWheelResponseItem"
+            }
+          },
+          "totalCount": {
+            "description": "The total search results",
+            "type": "number",
+            "example": 1823
+          },
+          "page": {
+            "description": "The current page of results",
+            "type": "number",
+            "example": 2
+          },
+          "pageSize": {
+            "description": "The page size for each page",
+            "type": "number",
+            "example": 50
+          },
+          "facets": {
+            "$ref": "#/components/schemas/ProductWheelResponseFacet"
+          }
+        }
+      },
+      "ProductWheelResponseItem": {
+        "properties": {
+          "sku": {
+            "description": "The manufacturer's sku",
+            "type": "string",
+            "example": "1780SRA-31872M28"
+          },
+          "upc": {
+            "description": "The UPC code of the wheel",
+            "type": "string",
+            "example": 195338028878
+          },
+          "skuType": {
+            "description": "The type of product",
+            "type": "string",
+            "enum": [
+              "WHEEL"
+            ],
+            "example": "WHEEL"
+          },
+          "title": {
+            "description": "The title of the wheel",
+            "type": "string",
+            "example": "MNNTT 20x9 5x112 M-BLK 32MM"
+          },
+          "brand": {
+            "description": "The brand of the wheel",
+            "type": "object",
+            "properties": {
+              "description": {
+                "description": "The brand description of the wheel",
+                "type": "string",
+                "example": "Black Rhino"
+              },
+              "code": {
+                "description": "The brand code of the wheel",
+                "type": "string",
+                "example": "BR"
+              },
+              "parent": {
+                "description": "The parent brand of the wheel",
+                "type": "string",
+                "example": "Balck Rhino"
+              }
+            }
+          },
+          "properties": {
+            "description": "Wheel product properties",
+            "type": "object",
+            "properties": {
+              "axleCd": {
+                "description": "Wheel location on vehicle:\n\nF - front\nR - rear\nB - either\n",
+                "type": "string",
+                "enum": [
+                  "F",
+                  "R",
+                  "B"
+                ],
+                "example": "F"
+              },
+              "model": {
+                "description": "The model of the wheel",
+                "type": "string",
+                "example": "Sierra"
+              },
+              "boltPattern": {
+                "description": "The metric bolt pattern of the wheel",
+                "type": "string",
+                "example": "5x114.3"
+              },
+              "finishCode": {
+                "description": "The finish code of the wheel",
+                "type": "string",
+                "example": "BLACK"
+              },
+              "finish": {
+                "description": "The finish description of the wheel",
+                "type": "string",
+                "example": "MATTE BLACK"
+              },
+              "offset": {
+                "description": "The offset of the wheel",
+                "type": "string",
+                "example": 32
+              },
+              "diameter": {
+                "description": "The diameter of the wheel",
+                "type": "string",
+                "example": 20
+              },
+              "centerbore": {
+                "description": "The center bore of the wheel",
+                "type": "string",
+                "example": 65.2
+              },
+              "width": {
+                "description": "The width of the wheel",
+                "type": "string",
+                "example": 7.5
+              },
+              "staggeredGroupId": {
+                "description": "The staggered group identifier for staggered wheel fitment for current search results",
+                "type": "string",
+                "example": 22
+              }
+            }
+          },
+          "inventory": {
+            "description": "Product inventory",
+            "type": "object",
+            "properties": {
+              "type": {
+                "description": "The inventory type code for the wheel:\n\n- **BL** - blank wheels\n- **BW** - blowout price wheel\n- **CF** - configurable wheel\n- **CS** - custom made wheel\n- **DB** - drilled from blank wheel\n- **IT** - import or international wheel\n- **N2** - discontinued wheel\n- **NW** - new wheel\n- **RG** - regional sales wheel\n- **ST** - standard stocking wheel\n",
+                "type": "string",
+                "enum": [
+                  "BL",
+                  "BW",
+                  "CF",
+                  "CS",
+                  "DB",
+                  "IT",
+                  "N2",
+                  "NW",
+                  "RG",
+                  "ST"
+                ],
+                "example": "ST"
+              },
+              "localStock": {
+                "type": "number",
+                "description": "Stock available in the preferred warehouse"
+              },
+              "globalStock": {
+                "type": "number",
+                "description": "Stock available in the preferred country/region"
+              }
+            }
+          },
+          "images": {
+            "description": "Product images",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductResponseItemImage"
+            }
+          },
+          "prices": {
+            "description": "Product prices",
+            "type": "object",
+            "properties": {
+              "msrp": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ProductResponseItemPrice"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ProductWheelResponseFacet": {
+        "type": "object",
+        "description": "Facets information for response",
+        "properties": {
+          "year": {
+            "$ref": "#/components/schemas/ProductResponseFacetItem"
+          },
+          "centerbore": {
+            "$ref": "#/components/schemas/ProductResponseFacetItem"
+          },
+          "diameter": {
+            "$ref": "#/components/schemas/ProductResponseFacetItem"
+          },
+          "offset": {
+            "$ref": "#/components/schemas/ProductResponseFacetItem"
+          },
+          "width": {
+            "$ref": "#/components/schemas/ProductResponseFacetItem"
+          },
+          "boltPattern": {
+            "$ref": "#/components/schemas/ProductResponseFacetItem"
+          },
+          "finish": {
+            "$ref": "#/components/schemas/ProductResponseFacetItem"
+          },
+          "brandDescription": {
+            "$ref": "#/components/schemas/ProductResponseFacetItem"
+          },
+          "brandCode": {
+            "$ref": "#/components/schemas/ProductResponseFacetItem"
+          }
+        }
+      },
+      "ProductTireResponse": {
+        "properties": {
+          "results": {
+            "description": "The product wheel results list",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductTireResponseItem"
+            }
+          },
+          "totalCount": {
+            "description": "The total search results",
+            "type": "number",
+            "example": 1823
+          },
+          "page": {
+            "description": "The current page of results",
+            "type": "number",
+            "example": 2
+          },
+          "pageSize": {
+            "description": "The page size for each page",
+            "type": "number",
+            "example": 50
+          },
+          "facets": {
+            "$ref": "#/components/schemas/ProductTireResponseFacet"
+          }
+        }
+      },
+      "ProductTireResponseItem": {
+        "properties": {
+          "sku": {
+            "description": "The manufacturer's sku",
+            "type": "string",
+            "example": "1780SRA-31872M28"
+          },
+          "upc": {
+            "description": "The UPC code of the wheel",
+            "type": "string",
+            "example": 195338028878
+          },
+          "skuType": {
+            "description": "The type of product",
+            "type": "string",
+            "enum": [
+              "TIRE"
+            ],
+            "example": "TIRE"
+          },
+          "title": {
+            "description": "The title of the wheel",
+            "type": "string",
+            "example": "P19555R16 CINTR P1 RUN FLT 24.4 1555516"
+          },
+          "brand": {
+            "description": "The brand of the tire",
+            "type": "object",
+            "properties": {
+              "description": {
+                "description": "The brand description of the tire",
+                "type": "string",
+                "example": "Black Rhino"
+              },
+              "code": {
+                "description": "The brand code of the tire",
+                "type": "string",
+                "example": "BR"
+              },
+              "parent": {
+                "description": "The parent brand of the tire",
+                "type": "string",
+                "example": "Balck Rhino"
+              }
+            }
+          },
+          "properties": {
+            "description": "Tire product properties",
+            "type": "object",
+            "properties": {
+              "diameter": {
+                "description": "The diameter of the tire",
+                "type": "string",
+                "example": "20"
+              },
+              "wheelDiameter": {
+                "description": "The wheel diameter that the tire will fit onto",
+                "type": "string",
+                "example": 20
+              },
+              "width": {
+                "description": "The width of the tire",
+                "type": "string",
+                "example": "215"
+              },
+              "model": {
+                "description": "The model of the tire",
+                "type": "string",
+                "example": "Sierra"
+              }
+            }
+          },
+          "inventory": {
+            "description": "Product inventory",
+            "type": "object",
+            "properties": {
+              "type": {
+                "description": "The inventory type code for the wheel:\n\n- **BL** - blank wheels\n- **BW** - blowout price wheel\n- **CF** - configurable wheel\n- **CS** - custom made wheel\n- **DB** - drilled from blank wheel\n- **IT** - import or international wheel\n- **N2** - discontinued wheel\n- **NW** - new wheel\n- **RG** - regional sales wheel\n- **ST** - standard stocking wheel\n",
+                "type": "string",
+                "enum": [
+                  "BL",
+                  "BW",
+                  "CF",
+                  "CS",
+                  "DB",
+                  "IT",
+                  "N2",
+                  "NW",
+                  "RG",
+                  "ST"
+                ],
+                "example": "ST"
+              },
+              "localStock": {
+                "type": "number",
+                "example": 0,
+                "description": "Stock available in the preferred warehouse"
+              },
+              "globalStock": {
+                "type": "number",
+                "example": 1,
+                "description": "Stock available in the preferred country/region"
+              }
+            }
+          },
+          "images": {
+            "description": "Product images",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductResponseItemImage"
+            }
+          },
+          "prices": {
+            "description": "Product prices",
+            "type": "object",
+            "properties": {
+              "msrp": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ProductResponseItemPrice"
+                }
+              },
+              "map": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ProductResponseItemPrice"
+                }
+              },
+              "nip": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ProductResponseItemPrice"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ProductTireResponseFacet": {
+        "type": "object",
+        "description": "Facets information for response",
+        "properties": {
+          "year": {
+            "$ref": "#/components/schemas/ProductResponseFacetItem"
+          },
+          "diameter": {
+            "$ref": "#/components/schemas/ProductResponseFacetItem"
+          },
+          "width": {
+            "$ref": "#/components/schemas/ProductResponseFacetItem"
+          },
+          "brandDescription": {
+            "$ref": "#/components/schemas/ProductResponseFacetItem"
+          },
+          "brandCode": {
+            "$ref": "#/components/schemas/ProductResponseFacetItem"
+          }
+        }
+      },
+      "ProductAccessoryResponse": {
+        "properties": {
+          "results": {
+            "description": "The product accessory results list",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductAccessoryResponseItem"
+            }
+          },
+          "totalCount": {
+            "description": "The total search results",
+            "type": "number",
+            "example": 1823
+          },
+          "page": {
+            "description": "The current page of results",
+            "type": "number",
+            "example": 2
+          },
+          "pageSize": {
+            "description": "The page size for each page",
+            "type": "number",
+            "example": 50
+          },
+          "facets": {
+            "$ref": "#/components/schemas/ProductAccessoryResponseFacet"
+          }
+        }
+      },
+      "ProductAccessoryResponseItem": {
+        "properties": {
+          "sku": {
+            "description": "The manufacturer's sku",
+            "type": "string",
+            "example": "1780SRA-31872M28"
+          },
+          "upc": {
+            "description": "The UPC code of the accessory",
+            "type": "string",
+            "example": 195338028878
+          },
+          "skuType": {
+            "description": "The type of product",
+            "type": "string",
+            "enum": [
+              "ACC"
+            ],
+            "example": "accessory"
+          },
+          "title": {
+            "description": "The title of the accessory",
+            "type": "string",
+            "example": "HEX SKT DUP LUG 14-1.50 CHR BULK"
+          },
+          "brand": {
+            "description": "The brand of the accessory",
+            "type": "object",
+            "properties": {
+              "description": {
+                "description": "The brand description of the accessory",
+                "type": "string",
+                "example": "Black Rhino"
+              },
+              "code": {
+                "description": "The brand code of the accessory",
+                "type": "string",
+                "example": "BR"
+              },
+              "parent": {
+                "description": "The parent brand of the accessory",
+                "type": "string",
+                "example": "Balck Rhino"
+              }
+            }
+          },
+          "inventory": {
+            "description": "Product inventory",
+            "type": "object",
+            "properties": {
+              "localStock": {
+                "type": "number",
+                "description": "Stock available in the preferred warehouse"
+              },
+              "globalStock": {
+                "type": "number",
+                "description": "Stock available in the preferred country/region"
+              },
+              "type": {
+                "description": "The inventory type code for the wheel:\n- **BL** - blank wheels\n- **BW** - blowout price wheel\n- **CF** - configurable wheel\n- **CS** - custom made wheel\n- **DB** - drilled from blank wheel\n- **IT** - import or international wheel\n- **N2** - discontinued wheel\n- **NW** - new wheel\n- **RG** - regional sales wheel\n- **ST** - standard stocking wheel\n",
+                "type": "string",
+                "enum": [
+                  "BL",
+                  "BW",
+                  "CF",
+                  "CS",
+                  "DB",
+                  "IT",
+                  "N2",
+                  "NW",
+                  "RG",
+                  "ST"
+                ],
+                "example": "ST"
+              }
+            }
+          },
+          "images": {
+            "description": "Product images",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductResponseItemImage"
+            }
+          },
+          "prices": {
+            "description": "Product prices",
+            "type": "object",
+            "properties": {
+              "msrp": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ProductResponseItemPrice"
+                }
+              },
+              "map": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ProductResponseItemPrice"
+                }
+              },
+              "nip": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ProductResponseItemPrice"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ProductAccessoryResponseFacet": {
+        "type": "object",
+        "description": "Facets information for response",
+        "properties": {
+          "brandDescription": {
+            "$ref": "#/components/schemas/ProductResponseFacetItem"
+          },
+          "brandCode": {
+            "$ref": "#/components/schemas/ProductResponseFacetItem"
+          }
+        }
+      },
+      "ProductWheelDetailedResponse": {
+        "type": "object",
+        "required": [
+          "sku",
+          "upc",
+          "skuType",
+          "title",
+          "brand",
+          "inventory"
+        ],
+        "properties": {
+          "sku": {
+            "description": "The manufacturer's sku",
+            "type": "string",
+            "example": "1780SRA-31872M28"
+          },
+          "upc": {
+            "description": "The UPC code of the wheel",
+            "type": "string",
+            "example": 195338028878
+          },
+          "skuType": {
+            "description": "The type of product",
+            "type": "string",
+            "enum": [
+              "WHEEL",
+              "TIRE",
+              "ACCESSORY"
+            ],
+            "example": "WHEEL"
+          },
+          "title": {
+            "description": "The title of the wheel",
+            "type": "string",
+            "example": "MNNTT 20x9 5x112 M-BLK 32MM"
+          },
+          "brand": {
+            "description": "The brand of the wheel",
+            "type": "object",
+            "required": [
+              "description",
+              "code",
+              "parent"
+            ],
+            "properties": {
+              "description": {
+                "description": "The brand description of the wheel",
+                "type": "string",
+                "example": "Black Rhino"
+              },
+              "code": {
+                "description": "The brand code of the wheel",
+                "type": "string",
+                "example": "BR"
+              },
+              "parent": {
+                "description": "The parent brand of the wheel",
+                "type": "string",
+                "example": "Balck Rhino"
+              }
+            }
+          },
+          "inventory": {
+            "description": "Inventory Data",
+            "type": "object",
+            "properties": {
+              "type": {
+                "description": "The inventory type code for the wheel:\n- **BL** - blank wheels\n- **BW** - blowout price wheel\n- **CF** - configurable wheel\n- **CS** - custom made wheel\n- **DB** - drilled from blank wheel\n- **IT** - import or international wheel\n- **N2** - discontinued wheel\n- **NW** - new wheel\n- **RG** - regional sales wheel\n- **ST** - standard stocking wheel\n",
+                "type": "string",
+                "enum": [
+                  "BL",
+                  "BW",
+                  "CF",
+                  "CS",
+                  "DB",
+                  "IT",
+                  "N2",
+                  "NW",
+                  "RG",
+                  "ST"
+                ],
+                "example": "ST"
+              },
+              "localStock": {
+                "type": "number",
+                "description": "Stock available in the preferred warehouse",
+                "example": 0
+              },
+              "globalStock": {
+                "type": "number",
+                "description": "Stock available in the preferred country/region",
+                "example": 1
+              }
+            }
+          },
+          "properties": {
+            "description": "Wheel product properties",
+            "type": "object",
+            "required": [
+              "backspacing",
+              "wheelWeight",
+              "capPartNo",
+              "rivetPartNo",
+              "tpmsCompatible",
+              "lipDepth",
+              "structuralWarranty",
+              "finishWarranty",
+              "loadRating",
+              "sizeDesc",
+              "model",
+              "boltPattern",
+              "finishCode",
+              "finish",
+              "offset",
+              "diameter",
+              "centerbore"
+            ],
+            "properties": {
+              "backspacing": {
+                "description": "wheel backspacing - Inches",
+                "type": "string",
+                "example": "7.22"
+              },
+              "wheelWeight": {
+                "description": "wheelWeight - Lbs/Kg",
+                "type": "string",
+                "example": "23.00/10.43"
+              },
+              "capPartNo": {
+                "description": "wheel cap part number",
+                "type": "string",
+                "example": "CCMANMB"
+              },
+              "rivetPartNo": {
+                "description": "wheel revert part number",
+                "type": "string",
+                "example": "BRRBTARYSTUD"
+              },
+              "tpmsCompatible": {
+                "description": "Accepts OE TPMS Sensor",
+                "type": "boolean",
+                "example": true
+              },
+              "lipDepth": {
+                "description": "lip depth",
+                "type": "string",
+                "example": "0.00"
+              },
+              "certification": {
+                "description": "certification",
+                "type": "string",
+                "example": "SAEJ2530"
+              },
+              "structuralWarranty": {
+                "description": "structural warrenty",
+                "type": "string",
+                "example": "LIFETIME"
+              },
+              "finishWarranty": {
+                "description": "finish warrenty",
+                "type": "string",
+                "example": "ONE YEAR"
+              },
+              "openEndCap": {
+                "description": "Open ended cap",
+                "type": "string",
+                "example": "CAPOE8SB"
+              },
+              "capScrewNo": {
+                "description": "cap screw number",
+                "type": "string",
+                "example": "M6X20 QTY 3"
+              },
+              "otherAccessories": {
+                "description": "other Accessories",
+                "type": "string",
+                "example": "NONE"
+              },
+              "additionalAccessories": {
+                "description": "additional accessories",
+                "type": "string",
+                "example": "NONE"
+              },
+              "catalogPage": {
+                "description": "catalog page",
+                "type": "string",
+                "example": "VOL 19 PG 127"
+              },
+              "loadRating": {
+                "description": "load rate - Lbs/Kg",
+                "type": "string",
+                "example": "2500/1133"
+              },
+              "sizeDesc": {
+                "description": "wheel size description",
+                "type": "string",
+                "example": "20X9"
+              },
+              "model": {
+                "description": "The model of the wheel",
+                "type": "string",
+                "example": "Sierra"
+              },
+              "boltPattern": {
+                "description": "The metric bolt pattern of the wheel",
+                "type": "string",
+                "example": "5x114.3"
+              },
+              "finishCode": {
+                "description": "The finish code of the wheel",
+                "type": "string",
+                "example": "BLACK"
+              },
+              "finish": {
+                "description": "The finish description of the wheel",
+                "type": "string",
+                "example": "MATTE BLACK"
+              },
+              "offset": {
+                "description": "The offset of the wheel",
+                "type": "string",
+                "example": 32
+              },
+              "diameter": {
+                "description": "The diameter of the wheel",
+                "type": "string",
+                "example": 20
+              },
+              "centerbore": {
+                "description": "The center bore of the wheel",
+                "type": "string",
+                "example": 65.2
+              },
+              "width": {
+                "description": "The width of the wheel",
+                "type": "string",
+                "example": "7.50"
+              },
+              "staggeredGroupId": {
+                "description": "The staggered group identifier for staggered wheel fitment for current search results",
+                "type": "string",
+                "example": 22
+              }
+            }
+          },
+          "images": {
+            "description": "Product images",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductResponseItemImage"
+            }
+          }
+        }
+      },
+      "SearchRequestSchema": {
+        "properties": {
+          "filter": {
+            "description": "free text filter in cloudsearch",
+            "type": "string"
+          },
+          "isExternalUser": {
+            "description": "isExternalUser **Q? do we need to support it here**",
+            "type": "string"
+          },
+          "email": {
+            "description": "email **Q? do we need to support it here**",
+            "type": "string"
+          },
+          "currencyCode": {
+            "description": "currency code **Q? do we need to support it here**",
+            "type": "string"
+          },
+          "type": {
+            "description": "type **Q? model type?**",
+            "type": "string",
+            "enum": [
+              "ACC"
+            ]
+          },
+          "brand": {
+            "description": "brand",
+            "type": "string"
+          },
+          "inventory": {
+            "description": "inventory filters **Q? do we need to support it here**",
+            "type": "object",
+            "properties": {
+              "stockAvailable": {
+                "description": "stock avaialble",
+                "type": "boolean",
+                "enum": [
+                  true,
+                  false
+                ]
+              },
+              "availabilityType": {
+                "description": "availability type **Q? what does AVAILABLE mean**",
+                "type": "string",
+                "enum": [
+                  "LOCAL",
+                  "AVAILABLE",
+                  "ALL"
+                ]
+              },
+              "warehouse": {
+                "description": "warehouse **Q? what format/syntax**",
+                "type": "string"
+              },
+              "minQty": {
+                "description": "minimum quantity > 0",
+                "type": "number"
+              }
+            }
+          },
+          "size": {
+            "description": "size **Q? currently required - should be optional**",
+            "type": "number"
+          },
+          "start": {
+            "description": "start **Q? currently required - should be optional**",
+            "type": "number"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "ProductBrandsResponse": {
+        "properties": {
+          "results": {
+            "description": "The product brand results list",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductBrandResponseItem"
+            }
+          },
+          "totalCount": {
+            "description": "The total brand results",
+            "type": "number",
+            "example": 1823
+          },
+          "page": {
+            "description": "The current page of results",
+            "type": "number",
+            "example": 2
+          },
+          "pageSize": {
+            "description": "The page size for each page",
+            "type": "number",
+            "example": 50
+          }
+        }
+      },
+      "ProductBrandResponseItem": {
+        "properties": {
+          "brand": {
+            "description": "The product brand description",
+            "type": "string",
+            "example": "Black Rhino"
+          },
+          "brandCode": {
+            "description": "The product brand code",
+            "type": "string",
+            "example": "BR"
+          },
+          "brandCodeAAIA": {
+            "description": "The product brand code in AAIA standard",
+            "type": "string",
+            "example": "BR"
+          },
+          "parentBrand": {
+            "description": "The product parent brand description",
+            "type": "string",
+            "example": "Black Rhino"
+          },
+          "isTire": {
+            "description": "Flag to determine if brand is for tire products",
+            "type": "boolean",
+            "example": true
+          },
+          "isWheel": {
+            "description": "Flag to determine if brand is for wheel products",
+            "type": "boolean",
+            "example": true
+          },
+          "isAccessory": {
+            "description": "Flag to determine if brand is for accessory products",
+            "type": "boolean",
+            "example": true
+          },
+          "feeds": {
+            "description": "Which countries feeds is brand to be included",
+            "type": "string",
+            "example": "US, CA"
+          },
+          "images": {
+            "description": "Product images",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BrandProductResponseItemImage"
+            }
+          }
+        }
+      },
+      "SystemError": {
+        "type": "object",
+        "required": [
+          "errorCode",
+          "errorMessage",
+          "errorType"
+        ],
+        "properties": {
+          "errorCode": {
+            "type": "string",
+            "description": "Error code for the exception"
+          },
+          "errorMessage": {
+            "type": "string",
+            "description": "Error message which describes the error"
+          },
+          "errorType": {
+            "type": "string",
+            "description": "Type of error occured in the application"
+          }
+        }
+      },
+      "UnauthorizedError": {
+        "type": "object",
+        "properties": {
+          "errorCode": {
+            "type": "string",
+            "description": "Error code which describes the error"
+          },
+          "errorMessage": {
+            "type": "string",
+            "description": "Error message which describes the error"
+          }
+        }
+      }
+    }
+  }
+}

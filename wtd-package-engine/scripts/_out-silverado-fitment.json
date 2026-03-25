@@ -1,0 +1,35 @@
+{
+  "boltPattern": "8x180",
+  "centerBoreMm": 124.1,
+  "wheelDiameterRangeIn": [
+    17,
+    18
+  ],
+  "wheelWidthRangeIn": [
+    7.5,
+    8
+  ],
+  "offsetRangeMm": [
+    44,
+    44
+  ],
+  "oemTireSizes": [
+    "245/75R17",
+    "265/70R17",
+    "275/70R18"
+  ],
+  "wheelSizes": [
+    {
+      "diameterIn": 17,
+      "widthIn": 7.5,
+      "offsetMm": 44
+    },
+    {
+      "diameterIn": 18,
+      "widthIn": 8,
+      "offsetMm": 44
+    }
+  ],
+  "confidence": 0.85,
+  "quality": "ok"
+}

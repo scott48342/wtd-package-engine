@@ -1,0 +1,110 @@
+{
+  "info": {
+    "name": "Wheel Pros (Warehouse Tire) — Starter",
+    "_postman_id": "7df5bb02-6f44-4bb0-8edc-c5f5d88f9f2b",
+    "description": "Starter collection: authorize (60-min token) + wheel search + sku details + brands.\n\nHow it works:\n- Run 01 Authorize to store accessToken in environment\n- Other calls use Authorization: Bearer {{accessToken}}\n\nVariables needed are in the companion environment JSON.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01 Auth — Authorize (store access token)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+              "const j = pm.response.json();",
+              "pm.test('accessToken present', function () { pm.expect(j).to.have.property('accessToken'); });",
+              "pm.environment.set('accessToken', j.accessToken);",
+              "pm.environment.set('tokenType', j.tokenType || 'Bearer');",
+              "pm.environment.set('expiresIn', String(j.expiresIn || 3600));",
+              "pm.environment.set('tokenExpiresAt', String(Date.now() + ((j.expiresIn || 3600) * 1000)));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userName\": \"{{userName}}\",\n  \"password\": \"{{password}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{authBaseUrl}}/v1/authorize",
+          "host": ["{{authBaseUrl}}"],
+          "path": ["v1", "authorize"]
+        },
+        "description": "Get 60-minute access token. Stores {{accessToken}} in environment."
+      }
+    },
+    {
+      "name": "02 Products — Wheel search (inventory + price)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Accept", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+        ],
+        "url": {
+          "raw": "{{productsBaseUrl}}/v1/search/wheel?page=1&pageSize=10&fields=inventory,price&priceType=msrp&company={{company}}&currencyCode={{currencyCode}}&availabilityType=AVAILABLE&realTimeInventory=false",
+          "host": ["{{productsBaseUrl}}"],
+          "path": ["v1", "search", "wheel"],
+          "query": [
+            { "key": "page", "value": "1" },
+            { "key": "pageSize", "value": "10" },
+            { "key": "fields", "value": "inventory,price" },
+            { "key": "priceType", "value": "msrp" },
+            { "key": "company", "value": "{{company}}" },
+            { "key": "currencyCode", "value": "{{currencyCode}}" },
+            { "key": "availabilityType", "value": "AVAILABLE" },
+            { "key": "realTimeInventory", "value": "false" }
+          ]
+        },
+        "description": "Wheel search returning inventory + MSRP pricing. Add filters like brand, boltPattern, diameter, width, minOffset/maxOffset, etc."
+      }
+    },
+    {
+      "name": "03 Products — SKU details (wheel/tire/accessory)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Accept", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+        ],
+        "url": {
+          "raw": "{{productsBaseUrl}}/v1/details/{{sku}}",
+          "host": ["{{productsBaseUrl}}"],
+          "path": ["v1", "details", "{{sku}}"]
+        },
+        "description": "Fetch detailed product data for a SKU. Set env var {{sku}} first (or use Postman Variables)."
+      }
+    },
+    {
+      "name": "04 Products — Brands list",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Accept", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+        ],
+        "url": {
+          "raw": "{{productsBaseUrl}}/v1/brands?page=1&pageSize=50",
+          "host": ["{{productsBaseUrl}}"],
+          "path": ["v1", "brands"],
+          "query": [
+            { "key": "page", "value": "1" },
+            { "key": "pageSize", "value": "50" }
+          ]
+        },
+        "description": "List product brands. You can add query param type=wheel (per swagger) if desired."
+      }
+    }
+  ]
+}
