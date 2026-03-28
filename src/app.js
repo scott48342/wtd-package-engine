@@ -7,6 +7,7 @@ const { packagesRouter } = require('./routes/packages.routes');
 const { tiresRouter } = require('./routes/tires.routes');
 const { installersRouter } = require('./routes/installers.routes');
 const { assetsRouter } = require('./routes/assets.routes');
+const { adminFitmentRouter } = require('./routes/admin.fitment.routes');
 
 function createApp({ config, services }) {
   const app = express();
@@ -59,6 +60,12 @@ function createApp({ config, services }) {
   }));
 
   app.use('/v1/assets', assetsRouter({ db: services.db }));
+
+  // Admin routes (require admin key)
+  app.use('/v1/admin/fitment', adminFitmentRouter({ 
+    db: services.db, 
+    config 
+  }));
 
   // Error handler
   // eslint-disable-next-line no-unused-vars
